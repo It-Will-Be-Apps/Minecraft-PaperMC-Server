@@ -1,0 +1,34 @@
+{
+    "name": "minecraft-papermc-server",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        {
+            "source": "${localEnv:USERPROFILE}/.ssh",
+            "target": "/root/.ssh",
+            "type": "bind"
+        },
+        {
+            "source": "minecraft-papermc-server-data",
+            "target": "/data",
+            "type": "volume"
+        }
+    ],
+    "forwardPorts": [25565],
+    "initializeCommand": "touch ${localWorkspaceFolder}/.devcontainer/.env.local",
+    "postCreateCommand": "./.devcontainer/scripts/init.sh",
+    "postStartCommand": "./.devcontainer/scripts/update.sh",
+    "postAttachCommand": "./.devcontainer/scripts/status.sh",
+    "customizations": {
+        "vscode": {
+            "settings": {},
+            "extensions": ["AmazonWebServices.aws-toolkit-vscode"]
+        }
+    },
+    "runArgs": [
+        "--name", "minecraft-papermc-server",
+        "--env-file", ".devcontainer/.env",
+        "--env-file", ".devcontainer/.env.local"
+    ]
+}
