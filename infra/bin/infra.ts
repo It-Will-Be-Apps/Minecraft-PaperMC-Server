@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+import { App } from 'aws-cdk-lib';
+import { InfraStack } from '../lib/infra-stack';
+
+const app = new App();
+
+new InfraStack(app, 'MinecraftPaperMCServer', {
+  env: { account: '815354249022', region: 'us-east-1' },
+
+  dataVolumeSizeGiB: app.node.tryGetContext('dataVolumeSizeGiB'),
+  idleMinutesBeforeStop: app.node.tryGetContext('idleMinutesBeforeStop'),
+  snapshotsToKeep: app.node.tryGetContext('snapshotsToKeep'),
+  instanceType: app.node.tryGetContext('instanceType')
+});

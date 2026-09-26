@@ -1,1 +1,14 @@
+# OS / editor noise
+.DS_Store
+*.log
+
+# CDK app (infra/)
+infra/cdk.out/
+infra/.cdk.staging
+infra/node_modules/
+infra/*.js
+infra/*.d.ts
+!infra/jest.config.js
+
+# Project files
 .env.local
