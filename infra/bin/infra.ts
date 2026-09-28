@@ -7,6 +7,7 @@ const app = new App();
 new InfraStack(app, 'MinecraftPaperMCServer', {
   env: { account: '815354249022', region: 'us-east-1' },
 
+  gitHubRepositoryUrl: "https://github.com/It-Will-Be-Apps/Minecraft-PaperMC-Server.git",
   dataVolumeSizeGiB: app.node.tryGetContext('dataVolumeSizeGiB'),
   idleMinutesBeforeStop: app.node.tryGetContext('idleMinutesBeforeStop'),
   snapshotsToKeep: app.node.tryGetContext('snapshotsToKeep'),

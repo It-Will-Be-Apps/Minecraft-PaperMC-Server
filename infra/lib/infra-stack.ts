@@ -1,4 +1,3 @@
-import { CfnOutput, Duration, RemovalPolicy, Size, StackProps } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -9,7 +8,11 @@ import { Construct } from 'constructs';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface MinecraftServerStackProps extends StackProps {
+export interface MinecraftServerStackProps extends cdk.StackProps {
+
+  // GitHub repository URL
+  gitHubRepositoryUrl: string;
+
   // EC2 instance type
   instanceType?: ec2.InstanceType;
 
@@ -29,6 +32,7 @@ export class InfraStack extends cdk.Stack {
 
     const APP_NAME = 'MinecraftPaperMCServer';
 
+    const gitHubRepositoryUrl = props.gitHubRepositoryUrl;
     const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MEDIUM);
     const dataVolumeSizeGiB = props.dataVolumeSizeGiB ?? 8;
     const idleMinutesBeforeStop = props.idleMinutesBeforeStop ?? 10;
@@ -78,10 +82,12 @@ export class InfraStack extends cdk.Stack {
     // ---------------------------------------------------------------------
     const worldDataVolume = new ec2.Volume(this, APP_NAME + '-DataVolume', {
       availabilityZone: subnet.availabilityZone,
-      size: Size.gibibytes(dataVolumeSizeGiB),
+      size: cdk.Size.gibibytes(dataVolumeSizeGiB),
       volumeType: ec2.EbsDeviceVolumeType.GP3,
-      removalPolicy: RemovalPolicy.RETAIN
+      removalPolicy: cdk.RemovalPolicy.RETAIN
     });
+
+    const worldDataVolumeId = worldDataVolume.volumeId;
 
     // ---------------------------------------------------------------------
     // EC2 instance to run the server
@@ -93,23 +99,63 @@ export class InfraStack extends cdk.Stack {
     });
 
     serverEc2InstanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(25565), 'Minecraft Java Edition');
-    serverEc2InstanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH');
+    // serverEc2InstanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH');
 
-    const userDataScript = fs.readFileSync(path.join(__dirname, '..', 'ec2', 'user-data.sh'), 'utf8');
+    const serverEc2InstanceRole = new iam.Role(this, 'ServerInstanceRole', {
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    });
+
+    serverEc2InstanceRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
+
+    const userDataScript = fs.readFileSync(path.join(__dirname, '..', 'ec2', 'user-data.sh'), 'utf8')
+        .replace('__WORLD_VOLUME_ID__', worldDataVolumeId)
+        .replace('__GIT_HUB_REPOSITORY_URL__', gitHubRepositoryUrl);
+
     const userData = ec2.UserData.custom(userDataScript);
+
+    const serverEc2InstanceProfile = new iam.InstanceProfile(this, 'ServerInstanceProfile', {
+      role: serverEc2InstanceRole
+    });
 
     const serverEc2Instance = new ec2.Instance(this, 'ServerInstance', {
       vpc,
+      vpcSubnets: { subnets: [subnet] },
       instanceType: instanceType,
       machineImage: ec2.MachineImage.latestAmazonLinux2023({ cpuType: ec2.AmazonLinuxCpuType.ARM_64 }),
       securityGroup: serverEc2InstanceSecurityGroup,
+      instanceProfile: serverEc2InstanceProfile,
       userData: userData
+    });
+
+    const serverEc2InstanceSSHPolicy = new iam.ManagedPolicy(this, APP_NAME + '-SSHPolicy', {
+      managedPolicyName: APP_NAME + '-EC2AllowConsoleSSHOnly',
+      statements: [
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'ssm:StartSession',
+            'ssm:SendCommand'
+          ],
+          resources: [
+            `arn:aws:ec2:${this.region}:${this.account}:instance/${serverEc2Instance.instanceId}`,
+            'arn:aws:ssm:*:*:document/AWS-StartSSHSession'
+          ]
+        }),
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'ssm:TerminateSession',
+            'ssm:ResumeSession'
+          ],
+          resources: ['arn:aws:ssm:*:*:session/\${aws:username}-*']
+        })
+      ]
     });
 
     new ec2.CfnVolumeAttachment(this, APP_NAME + '-DataVolumeAttachment', {
       instanceId: serverEc2Instance.instanceId,
-      volumeId: worldDataVolume.volumeId,
-      device: '/dev/sdf',
+      volumeId: worldDataVolumeId,
+      device: '/dev/sdf'
     });
 
     // ---------------------------------------------------------------------
@@ -127,28 +173,63 @@ export class InfraStack extends cdk.Stack {
         DISCORD_OWNER_USER_ID: discordOwnerUserId,
         EC2_INSTANCE_ID: serverEc2Instance.instanceId
       },
-      timeout: Duration.minutes(1)
+      timeout: cdk.Duration.minutes(5)
     });
 
-    const serverManagementLambdaUrl = serverManagementLambda.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:DescribeInstances'
+      ],
+      resources: ['*']
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:StartInstances',
+        'ec2:StopInstances',
+        'ec2:CreateSnapshot'
+      ],
+      resources: [
+        this.formatArn({
+          service: 'ec2',
+          resource: 'instance',
+          resourceName: serverEc2Instance.instanceId
+        })
+      ]
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ssm:SendCommand',
+        'ssm:GetCommandInvocation',
+      ],
+        resources: ['*']
+    }));
+
+
+    // ---------------------------------------------------------------------
+    // Lambda function to interface with Discord commands
+    // ---------------------------------------------------------------------
+    const discordInterfaceLambda = new lambda_nodejs.NodejsFunction(this, 'DiscordInterface', {
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      handler: 'handler',
+      entry: path.join(__dirname, '..', 'lambda', 'discord-interface', 'index.ts'),
+      environment: {
+        DISCORD_APP_PUBLIC_KEY: discordAppPublicKey,
+        DISCORD_GUILD_ID: discordGuildId,
+        DISCORD_PLAYER_ROLE_ID: discordPlayerRoleId,
+        DISCORD_CONTROL_CHANNEL_ID: discordControlChannelId,
+        DISCORD_OWNER_USER_ID: discordOwnerUserId,
+        SERVER_MANAGEMENT_FUNCTION_NAME: serverManagementLambda.functionName
+      },
+      timeout: cdk.Duration.seconds(5)
     });
 
-    serverManagementLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['ec2:StartInstances', 'ec2:StopInstances'],
-        resources: [
-          this.formatArn({
-            service: 'ec2',
-            resource: 'instance',
-            resourceName: serverEc2Instance.instanceId
-          }),
-        ],
-      })
-    );
+    const discordInterfaceLambdaUrl = discordInterfaceLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE
+    });
 
-    // Ensure all resources in the stack are tagged with the application name
-    cdk.Tags.of(this).add('Application', APP_NAME);
+    serverManagementLambda.grantInvoke(discordInterfaceLambda);
 
     // ---------------------------------------------------------------------
     // Resource group to group all resources in the stack together
@@ -165,14 +246,20 @@ export class InfraStack extends cdk.Stack {
               key: 'Application',
               values: [APP_NAME],
             }
-          ],
-        },
-      },
+          ]
+        }
+      }
     });
 
     // ---------------------------------------------------------------------
-    // Useful outputs from the generated resources
+    // Other configurations
     // ---------------------------------------------------------------------
-    new CfnOutput(this, 'DiscordFunctionUrl', { value: serverManagementLambdaUrl.url });
+
+    // Ensure all resources in the stack are tagged with the application name
+    cdk.Tags.of(this).add('Application', APP_NAME);
+
+    // Useful outputs from the generated resources
+    new cdk.CfnOutput(this, 'DiscordFunctionUrl', { value: discordInterfaceLambdaUrl.url });
+    new cdk.CfnOutput(this, 'EC2SSHPolicyArn', { value: serverEc2InstanceSSHPolicy.managedPolicyArn });
   }
 }

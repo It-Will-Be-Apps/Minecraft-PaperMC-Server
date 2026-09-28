@@ -22,7 +22,11 @@ An EC2 instance to run the Minecraft server
 
 A Lambda function to interact with the Minecraft server
 
-### 5. Resource Group
+### 5. Lambda Function
+
+A Lambda function to interface with Discord commands
+
+### 6. Resource Group
 
 A resource group to be able to easily browse all resources related to the project
 

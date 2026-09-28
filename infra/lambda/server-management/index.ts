@@ -1,213 +1,198 @@
-import { EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
+import { DescribeInstancesCommand, EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
+import { GetCommandInvocationCommand, SendCommandCommand, SSMClient } from '@aws-sdk/client-ssm';
 
-import { verifyKey } from 'discord-interactions';
-
-const ec2Client = new EC2Client({});
 const EC2_INSTANCE_ID = process.env.EC2_INSTANCE_ID!;
 
-const DISCORD_APP_PUBLIC_KEY = process.env.DISCORD_APP_PUBLIC_KEY!;
-const DISCORD_CONTROL_CHANNEL_ID = process.env.DISCORD_CONTROL_CHANNEL_ID;
-const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
-const DISCORD_OWNER_USER_ID = process.env.DISCORD_OWNER_USER_ID;
-const DISCORD_PLAYER_ROLE_ID = process.env.DISCORD_PLAYER_ROLE_ID;
-
-const INTERACTION_TYPE_PING = 1;
-const INTERACTION_TYPE_APPLICATION_COMMAND = 2;
-
-const RESPONSE_TYPE_PONG = 1;
-const RESPONSE_TYPE_CHANNEL_MESSAGE = 4;
+const ec2Client = new EC2Client({});
+const ssmClient = new SSMClient({});
 
 export const handler = async (event: any) => {
-  const signature = event.headers['x-signature-ed25519'];
-  const timestamp = event.headers['x-signature-timestamp'];
+  const interaction = event.interaction;
 
-  // Handle optional base64 encoding of the body
-  const rawBody = event.isBase64Encoded
-    ? Buffer.from(event.body ?? '', 'base64').toString('utf-8')
-    : event.body ?? '';
-
-  const isValid = signature && timestamp && (await verifyKey(rawBody, signature, timestamp, DISCORD_APP_PUBLIC_KEY));
-
-  if (!isValid) {
-    return { statusCode: 401, body: 'Bad request signature' };
+  if (!interaction) {
+    throw new Error('Missing interaction');
   }
 
-  const interaction = JSON.parse(rawBody);
-  console.log("interaction: ", interaction);
+  try {
+    const commandName = interaction.data?.name;
+    console.log(`Processing command: ${commandName}`);
 
-  // Discord PING request
-  if (interaction.type === INTERACTION_TYPE_PING) {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: RESPONSE_TYPE_PONG }),
-    };
-  }
-
-  // Status command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'status') {
-    try {
-      return success(await getServerStatus(interaction));
-    } catch (err: any) {
-      return error("Unable to get server status: " + err.message);
+    switch (commandName) {
+      case 'status':
+        return await handleStatus(interaction);
+      case 'start':
+        return await handleStart(interaction);
+      case 'stop':
+        return await handleStop(interaction);
+      case 'restart':
+        return await handleRestart(interaction);
+      case 'wipe':
+        return await handleWipe(interaction);
+      case 'restore':
+        return await handleRestore(interaction);
+      case 'run':
+        return await handleRun(interaction);
+      default:
+        throw new Error(`Unknown command: ${commandName}`);
     }
+  } catch (error: any) {
+    console.error(`Failed to process interaction: ${error}`);
+    await updateDiscordResponse(interaction, `❌ An error occurred: ${error.message}`);
   }
-
-  // Start command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'start') {
-    try {
-      return success(await startServer(interaction));
-    } catch (err: any) {
-      return error("Unable to start server: " + err.message);
-    }
-  }
-
-  // Stop command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'stop') {
-    try {
-      return success(await stopServer(interaction));
-    } catch (err: any) {
-      return error("Unable to stop server: " + err.message);
-    }
-  }
-
-  // Restart command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'restart') {
-    try {
-      return success(await restartServer(interaction));
-    } catch (err: any) {
-      return error("Unable to restart server: " + err.message);
-    }
-  }
-
-  // Wipe command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'wipe') {
-    try {
-      return success(await wipeWorldData(interaction));
-    } catch (err: any) {
-      return error("Unable to wipe world data: " + err.message);
-    }
-  }
-
-  // Run command
-  else if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND && interaction.data?.name === 'run') {
-    try {
-      return success(await runServerCommand(interaction));
-    } catch (err: any) {
-      return error("Unable to run server command: " + err.message);
-    }
-  }
-
-  return badRequest('Unknown command');
 };
 
-async function getServerStatus(interaction: any) {
-  if (interactionIsValid(interaction, false)) {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You have invoked the /status command but it is not yet implemented' },
-    };
-  } else {
-      return {
-        type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-        data: { content: 'You are not allowed to invoke this command' },
-      };
+async function handleStatus(interaction: any) {
+  const response = await ec2Client.send(new DescribeInstancesCommand({
+    InstanceIds: [EC2_INSTANCE_ID]
+  }));
+
+  const instance = response.Reservations?.[0]?.Instances?.[0];
+  if (!instance) {
+    throw new Error('EC2 instance not found');
+  }
+
+  const instanceStatus = instance.State?.Name ?? 'unknown';
+  console.log(`EC2 instance status: ${instanceStatus}`);
+
+  if (instanceStatus !== 'running') {
+    await updateDiscordResponse(interaction, formatServerStatus(instanceStatus, 'offline'));
+    return;
+  }
+
+  const minecraftStatus = parseMinecraftStatus(await runServerScript('status.sh'));
+  console.log(`Minecraft server status: ${minecraftStatus}`);
+
+  if (!minecraftStatus.running) {
+    await updateDiscordResponse(interaction, formatServerStatus(instanceStatus, 'offline'));
+    return;
+  }
+
+  await updateDiscordResponse(interaction, formatServerStatus(instanceStatus, 'online', minecraftStatus.playersCount));
+}
+
+function formatServerStatus(ec2InstanceState: string, minecraftServerState: 'online' | 'offline', playersCount?: number): string {
+  let serverStatus = `🖥️ **Instance:**: ${ec2InstanceState}` + `\n🎮 **Minecraft:** ${minecraftServerState}`;
+
+  if (minecraftServerState === 'online') {
+    serverStatus += `\n👥 **Players:** ${playersCount}`
+  }
+
+  return serverStatus;
+}
+
+function parseMinecraftStatus(minecraftStatus: string): { running: boolean; playersCount: number } {
+  if (minecraftStatus.includes('OFFLINE')) {
+    return { running: false, playersCount: 0 };
+  }
+
+  if (!minecraftStatus.includes('ONLINE')) {
+    throw new Error(`Unexpected Minecraft status: ${minecraftStatus}`);
+  }
+
+  const match = minecraftStatus.match(/There are (\d+) of a max of \d+ players online/);
+
+  if (!match) {
+    throw new Error(`Could not parse player count from RCON output: ${minecraftStatus}`);
+  }
+
+  return { running: true, playersCount: Number(match[1]) };
+}
+
+async function runServerScript(scriptName: string): Promise<string> {
+  const command = await ssmClient.send(new SendCommandCommand({
+    InstanceIds: [EC2_INSTANCE_ID],
+    DocumentName: 'AWS-RunShellScript',
+    TimeoutSeconds: 30,
+    Parameters: {
+      commands: [`/opt/minecraft/scripts/${scriptName}`],
+      executionTimeout: ['10']
     }
+  }));
+
+  const commandId = command.Command?.CommandId;
+
+  if (!commandId) {
+    throw new Error('SSM command did not return a command ID');
+  }
+
+  // Wait for the SSM command to finish
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await sleep(1000);
+
+    const result = await ssmClient.send(new GetCommandInvocationCommand({
+      CommandId: commandId,
+      InstanceId: EC2_INSTANCE_ID
+    }));
+
+    if (result.Status === 'Pending' || result.Status === 'InProgress') {
+      continue;
+    }
+
+    if (result.Status !== 'Success') {
+      throw new Error(`SSM command failed with status: ${result.Status}`);
+    }
+
+    const output = result.StandardOutputContent?.trim() ?? '';
+    console.log(`SSM command output: ${output}`);
+
+    return output;
+  }
+
+  throw new Error('Timed out waiting for SSM command');
 }
 
-async function startServer(interaction: any) {
-  if (interactionIsValid(interaction, false)) {
-    await ec2Client.send(new StartInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'The server is starting, you can use /status to check if it is ready' },
-    };
-  } else {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
+async function handleStart(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await ec2Client.send(new StartInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
+  await updateDiscordResponse(interaction, 'The /start command is not yet implemented');
+}
+
+async function handleStop(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await ec2Client.send(new StopInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
+  await updateDiscordResponse(interaction, 'The /stop command is not yet implemented');
+}
+
+async function handleRestart(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await updateDiscordResponse(interaction, 'The /restart command is not yet implemented');
+}
+
+async function handleWipe(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await updateDiscordResponse(interaction, 'The /wipe command is not yet implemented');
+}
+
+async function handleRestore(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await updateDiscordResponse(interaction, 'The /restore command is not yet implemented')
+}
+
+async function handleRun(interaction: any) {
+  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
+  await updateDiscordResponse(interaction, 'The /run command is not yet implemented')
+}
+
+async function updateDiscordResponse(interaction: any, content: string) {
+  const applicationId = interaction.application_id;
+  const interactionToken = interaction.token;
+
+  const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`;
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content })
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to update Discord response: ${response.status} ${body}`);
   }
 }
 
-async function stopServer(interaction: any) {
-  if (interactionIsValid(interaction, false)) {
-    await ec2Client.send(new StopInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'The server is stopping, you can use /status to check if it is stopped' },
-    };
-  } else {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
-  }
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-async function restartServer(interaction: any) {
-  if (interactionIsValid(interaction, false)) {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You have invoked the /restart command but it is not yet implemented' },
-    };
-  } else {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
-  }
-}
-
-async function wipeWorldData(interaction: any) {
-  if (interactionIsValid(interaction, true)) {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You have invoked the /wipe command but it is not yet implemented' },
-    };
-  } else {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
-  }
-}
-
-async function runServerCommand(interaction: any) {
-  if (interactionIsValid(interaction, true)) {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You have invoked the /run command but it is not yet implemented' },
-    };
-  } else {
-    return {
-      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
-  }
-}
-
-function interactionIsValid(interaction: any, adminOnly: boolean): boolean {
-  return interaction.guild_id === DISCORD_GUILD_ID
-    && interaction.channel_id === DISCORD_CONTROL_CHANNEL_ID
-    && interaction.member?.roles?.includes(DISCORD_PLAYER_ROLE_ID)
-    && (!adminOnly || interaction.member?.user?.id === DISCORD_OWNER_USER_ID);
-}
-
-const success = (body: any) => ({
-  statusCode: 200,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body)
-});
-
-const badRequest = (errorMessage: string) => ({
-  statusCode: 400,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ message: errorMessage })
-});
-
-const error = (errorMessage: string) => ({
-  statusCode: 500,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ message: errorMessage })
-});
