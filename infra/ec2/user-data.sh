@@ -122,9 +122,29 @@ WantedBy=multi-user.target
 EOF
 
 # ----------------------------------
-# 10. Enable the deployment service
+# 11. Create the watchdog service
+# ----------------------------------
+cat > /etc/systemd/system/minecraft-watchdog.service <<'EOF'
+[Unit]
+Description=Track active players to know when to shut down the instance
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/opt/minecraft/server/scripts/watchdog.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# ----------------------------------
+# 12. Enable the services
 # ----------------------------------
 systemctl daemon-reload
 systemctl enable --now minecraft-deploy.service
+systemctl enable --now minecraft-watchdog.service
 
 echo "User data script successfully completed"

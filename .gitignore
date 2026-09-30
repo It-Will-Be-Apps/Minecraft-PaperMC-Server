@@ -13,6 +13,9 @@ infra/*.d.ts
 # Minecraft data
 data/
 
+# Idle state data
+state/
+
 # Project files
 .env.local
 .env.secrets
