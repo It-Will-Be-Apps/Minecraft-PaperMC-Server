@@ -99,7 +99,6 @@ export class InfraStack extends cdk.Stack {
     });
 
     serverEc2InstanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(25565), 'Minecraft Java Edition');
-    // serverEc2InstanceSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH');
 
     const serverEc2InstanceRole = new iam.Role(this, 'ServerInstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -166,14 +165,11 @@ export class InfraStack extends cdk.Stack {
       handler: 'handler',
       entry: path.join(__dirname, '..', 'lambda', 'server-management', 'index.ts'),
       environment: {
-        DISCORD_APP_PUBLIC_KEY: discordAppPublicKey,
-        DISCORD_GUILD_ID: discordGuildId,
-        DISCORD_PLAYER_ROLE_ID: discordPlayerRoleId,
-        DISCORD_CONTROL_CHANNEL_ID: discordControlChannelId,
-        DISCORD_OWNER_USER_ID: discordOwnerUserId,
-        EC2_INSTANCE_ID: serverEc2Instance.instanceId
+        APP_NAME: APP_NAME,
+        EC2_INSTANCE_ID: serverEc2Instance.instanceId,
+        WORLD_VOLUME_ID: worldDataVolume.volumeId
       },
-      timeout: cdk.Duration.minutes(5)
+      timeout: cdk.Duration.minutes(10)
     });
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
@@ -187,7 +183,8 @@ export class InfraStack extends cdk.Stack {
       actions: [
         'ec2:StartInstances',
         'ec2:StopInstances',
-        'ec2:CreateSnapshot'
+        'ec2:CreateSnapshot',
+        'ssm:SendCommand'
       ],
       resources: [
         this.formatArn({
@@ -200,10 +197,23 @@ export class InfraStack extends cdk.Stack {
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: [
-        'ssm:SendCommand',
-        'ssm:GetCommandInvocation',
+        'ssm:SendCommand'
       ],
-        resources: ['*']
+      resources: [
+        this.formatArn({
+          service: 'ssm',
+          resource: 'document',
+          resourceName: 'AWS-RunShellScript',
+          account: ''
+        })
+      ]
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ssm:GetCommandInvocation'
+      ],
+      resources: ['*']
     }));
 
 

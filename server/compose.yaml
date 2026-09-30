@@ -4,6 +4,7 @@ services:
     pull_policy: daily
     tty: true
     stdin_open: true
+    stop_grace_period: 1m
     ports:
       - "25565:25565"
     env_file:

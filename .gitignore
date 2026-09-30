@@ -15,3 +15,4 @@ data/
 
 # Project files
 .env.local
+.env.secrets
