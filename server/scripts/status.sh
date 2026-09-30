@@ -47,16 +47,25 @@ fi
 
 if [ "$PLAYER_COUNT" -eq 0 ] && [ -f "$IDLE_SINCE_FILE" ]; then
     IDLE_SINCE=$(cat "$IDLE_SINCE_FILE")
+
+    jq -n \
+        --argjson players "$PLAYERS_JSON" \
+        --arg idleSince "$IDLE_SINCE" \
+        '{
+            running: true,
+            players: $players,
+            idle: true,
+            idleSince: $idleSince
+        }'
 else
     IDLE_SINCE="null"
-fi
 
-jq -n \
-    --argjson players "$PLAYERS_JSON" \
-    --argjson idleSince "$IDLE_SINCE" \
-    '{
-        running: true,
-        players: $players,
-        idle: ($players | length == 0),
-        idleSince: $idleSince
-    }'
+    jq -n \
+        --argjson players "$PLAYERS_JSON" \
+        '{
+            running: true,
+            players: $players,
+            idle: false,
+            idleSince: null
+        }'
+fi
