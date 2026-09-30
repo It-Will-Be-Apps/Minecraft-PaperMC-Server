@@ -17,14 +17,11 @@ log() {
 }
 
 get_container_id() {
-    docker compose \
-        -f "$COMPOSE_FILE" \
-        ps -q "$SERVICE_NAME"
+    docker compose -f "$COMPOSE_FILE" ps -q "$SERVICE_NAME"
 }
 
 is_container_running() {
     local container_id="$1"
-
     [ "$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || echo false)" = "true" ]
 }
 
@@ -32,10 +29,7 @@ get_player_count() {
     local container_id="$1"
     local output
 
-    output=$(docker compose \
-        -f "$COMPOSE_FILE" \
-        exec -T "$SERVICE_NAME" \
-        rcon-cli list)
+    output=$(docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" rcon-cli list)
 
     if [[ "$output" =~ There\ are\ ([0-9]+)\ of\ a\ max\ of ]]; then
         echo "${BASH_REMATCH[1]}"
@@ -132,12 +126,8 @@ watch_logs() {
 
         log "Starting Minecraft log watcher"
 
-        docker compose \
-            -f "$COMPOSE_FILE" \
-            logs \
-            --follow \
-            --no-log-prefix \
-            "$SERVICE_NAME" 2>/dev/null |
+        docker compose -f "$COMPOSE_FILE" logs --follow --no-log-prefix "$SERVICE_NAME" 2>/dev/null |
+
         while IFS= read -r line; do
             handle_log_event "$line"
         done

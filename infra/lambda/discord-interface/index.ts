@@ -10,10 +10,16 @@ const DISCORD_PLAYER_ROLE_ID = process.env.DISCORD_PLAYER_ROLE_ID;
 
 const INTERACTION_TYPE_PING = 1;
 const INTERACTION_TYPE_APPLICATION_COMMAND = 2;
+const INTERACTION_TYPE_MESSAGE_COMPONENT = 3;
 
 const RESPONSE_TYPE_PONG = 1;
 const RESPONSE_TYPE_CHANNEL_MESSAGE = 4;
 const RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE = 5;
+const RESPONSE_TYPE_DEFERRED_MESSAGE_UPDATE = 6;
+const RESPONSE_TYPE_UPDATE_MESSAGE = 7;
+
+const MINECRAFT_STOP_CONFIRM = "minecraft_stop_confirm";
+const MINECRAFT_STOP_CANCEL = "minecraft_stop_cancel";
 
 const SERVER_MANAGEMENT_FUNCTION_NAME = process.env.SERVER_MANAGEMENT_FUNCTION_NAME!;
 
@@ -43,25 +49,36 @@ export const handler = async (event: any) => {
     return success({ type: RESPONSE_TYPE_PONG });
   }
 
-  // Unknown interaction type
-  if (interaction.type !== INTERACTION_TYPE_APPLICATION_COMMAND) {
-    return badRequest('Unknown interaction type');
+  // Application command
+  if (interaction.type === INTERACTION_TYPE_APPLICATION_COMMAND) {
+    return await handleApplicationCommand(interaction);
   }
 
+  // Message component
+  if (interaction.type === INTERACTION_TYPE_MESSAGE_COMPONENT) {
+    return await handleMessageComponent(interaction);
+  }
+
+  return badRequest('Unknown interaction type');
+}
+
+async function handleApplicationCommand(interaction: any) {
   const command = interaction.data?.name;
 
   if (!commandIsValid(command)) {
     return badRequest('Unknown command');
   }
 
-  if (!interactionIsValid(interaction, command)) {
-    return {
+  const isAdmin = interaction.member?.user?.id === DISCORD_OWNER_USER_ID
+
+  if (!interactionIsValid(interaction, command, isAdmin)) {
+    return success({
       type: RESPONSE_TYPE_CHANNEL_MESSAGE,
-      data: { content: 'You are not allowed to invoke this command' },
-    };
+      data: { content: 'You are not allowed to invoke this command' }
+    });
   }
 
-  await invokeWorker(interaction);
+  await invokeWorker(interaction, isAdmin);
 
   return success({ type: RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE });
 }
@@ -70,21 +87,61 @@ function commandIsValid(command: string) {
   return USER_COMMANDS.includes(command) || ADMIN_COMMANDS.includes(command);
 }
 
-function interactionIsValid(interaction: any, command: string): boolean {
+function interactionIsValid(interaction: any, command: string, isAdmin: boolean): boolean {
   const adminOnly = ADMIN_COMMANDS.includes(command);
 
   return interaction.guild_id === DISCORD_GUILD_ID
     && interaction.channel_id === DISCORD_CONTROL_CHANNEL_ID
     && interaction.member?.roles?.includes(DISCORD_PLAYER_ROLE_ID)
-    && (!adminOnly || interaction.member?.user?.id === DISCORD_OWNER_USER_ID);
+    && (!adminOnly || isAdmin);
 }
 
-async function invokeWorker(interaction: any) {
+async function invokeWorker(interaction: any, isAdmin: boolean) {
   await lambdaClient.send(new InvokeCommand({
     FunctionName: SERVER_MANAGEMENT_FUNCTION_NAME,
     InvocationType: 'Event',
-    Payload: Buffer.from(JSON.stringify({ interaction }))
+    Payload: Buffer.from(JSON.stringify({ interaction, isAdmin }))
   }));
+}
+
+async function handleMessageComponent(interaction: any) {
+  const customId = interaction.data?.custom_id;
+  const isAdmin = interaction.member?.user?.id === DISCORD_OWNER_USER_ID
+
+  if (interaction.guild_id !== DISCORD_GUILD_ID
+      || interaction.channel_id !== DISCORD_CONTROL_CHANNEL_ID
+      || !interaction.member?.roles?.includes(DISCORD_PLAYER_ROLE_ID)
+      || !isAdmin) {
+      
+    return success({
+      type: RESPONSE_TYPE_CHANNEL_MESSAGE,
+      data: { content: 'You are not allowed to invoke this command' }
+    });
+  }
+
+  if (customId === MINECRAFT_STOP_CONFIRM) {
+    await invokeWorker(interaction, isAdmin);
+
+    return success({
+      type: RESPONSE_TYPE_DEFERRED_MESSAGE_UPDATE,
+      data: {
+        content: 'Stopping the Minecraft server...',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_STOP_CANCEL) {
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Stop command cancelled',
+        components: []
+      }
+    });
+  }
+
+  return badRequest('Unknown component');
 }
 
 const success = (body: any) => ({

@@ -1,5 +1,7 @@
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as resourcegroups from 'aws-cdk-lib/aws-resourcegroups';
@@ -20,7 +22,7 @@ export interface MinecraftServerStackProps extends cdk.StackProps {
   dataVolumeSizeGiB?: number;
 
   // Minutes with 0 players online before the server auto-stops
-  idleMinutesBeforeStop?: number;
+  maxIdleDurationInMinutes?: number;
 
   // Number of world backups to retain
   snapshotsToKeep?: number;
@@ -35,8 +37,8 @@ export class InfraStack extends cdk.Stack {
     const gitHubRepositoryUrl = props.gitHubRepositoryUrl;
     const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MEDIUM);
     const dataVolumeSizeGiB = props.dataVolumeSizeGiB ?? 8;
-    const idleMinutesBeforeStop = props.idleMinutesBeforeStop ?? 10;
-    const snapshotsToKeep = props.snapshotsToKeep ?? 3;
+    const maxIdleDurationInMinutes = props.maxIdleDurationInMinutes ?? 10;
+    const snapshotsToKeep = props.snapshotsToKeep ?? 10;
 
     // ---------------------------------------------------------------------
     // Parameters initialization
@@ -167,6 +169,7 @@ export class InfraStack extends cdk.Stack {
       environment: {
         APP_NAME: APP_NAME,
         EC2_INSTANCE_ID: serverEc2Instance.instanceId,
+        MAX_IDLE_DURATION_IN_MINUTES: String(maxIdleDurationInMinutes),
         WORLD_VOLUME_ID: worldDataVolume.volumeId
       },
       timeout: cdk.Duration.minutes(10)
@@ -174,7 +177,9 @@ export class InfraStack extends cdk.Stack {
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: [
-        'ec2:DescribeInstances'
+        'ec2:DescribeInstances',
+        'ec2:DescribeSnapshots',
+        'ssm:GetCommandInvocation'
       ],
       resources: ['*']
     }));
@@ -211,11 +216,41 @@ export class InfraStack extends cdk.Stack {
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: [
-        'ssm:GetCommandInvocation'
+        'ec2:CreateSnapshot'
       ],
-      resources: ['*']
+      resources: [
+        this.formatArn({
+          service: 'ec2',
+          resource: 'volume',
+          resourceName: worldDataVolume.volumeId
+        }),
+        this.formatArn({
+          service: 'ec2',
+          resource: 'snapshot',
+          resourceName: '*',
+          account: ''
+        })
+      ]
     }));
 
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:CreateTags'
+      ],
+      resources: [
+        this.formatArn({
+          service: 'ec2',
+          resource: 'snapshot',
+          resourceName: '*',
+          account: ''
+        })
+      ],
+      conditions: {
+        StringEquals: {
+          'ec2:CreateAction': 'CreateSnapshot'
+        }
+      }
+    }));
 
     // ---------------------------------------------------------------------
     // Lambda function to interface with Discord commands
@@ -240,6 +275,19 @@ export class InfraStack extends cdk.Stack {
     });
 
     serverManagementLambda.grantInvoke(discordInterfaceLambda);
+
+    // ---------------------------------------------------------------------
+    // Event Bridge rule to shutdown the server when idle for too long
+    // ---------------------------------------------------------------------
+    const minecraftIdleCheckRule = new events.Rule(this, 'MinecraftIdleCheckRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(maxIdleDurationInMinutes))
+    });
+
+    minecraftIdleCheckRule.addTarget(new targets.LambdaFunction(serverManagementLambda, {
+      event: events.RuleTargetInput.fromObject({
+        type: 'minecraft-idle-check'
+      })
+    }));
 
     // ---------------------------------------------------------------------
     // Resource group to group all resources in the stack together
