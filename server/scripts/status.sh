@@ -2,7 +2,7 @@
 
 set -eu
 
-#IDLE_SINCE_FILE="/opt/minecraft/server/state/idle-since"
+IDLE_SINCE_FILE="/opt/minecraft/server/state/idle-since"
 COMPOSE_FILE="/opt/minecraft/server/compose.yaml"
 SERVICE_NAME="minecraft-server"
 
