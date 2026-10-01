@@ -10,6 +10,7 @@ new InfraStack(app, 'MinecraftPaperMCServer', {
   gitHubRepositoryUrl: "https://github.com/It-Will-Be-Apps/Minecraft-PaperMC-Server.git",
   dataVolumeSizeGiB: app.node.tryGetContext('dataVolumeSizeGiB'),
   maxIdleDurationInMinutes: app.node.tryGetContext('maxIdleDurationInMinutes'),
+  idleCheckPeriodInMinutes: app.node.tryGetContext('idleCheckPeriodInMinutes'),
   snapshotsToKeep: app.node.tryGetContext('snapshotsToKeep'),
   instanceType: app.node.tryGetContext('instanceType')
 });

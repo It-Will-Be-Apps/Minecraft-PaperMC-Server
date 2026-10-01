@@ -15,7 +15,6 @@ const INTERACTION_TYPE_MESSAGE_COMPONENT = 3;
 const RESPONSE_TYPE_PONG = 1;
 const RESPONSE_TYPE_CHANNEL_MESSAGE = 4;
 const RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE = 5;
-const RESPONSE_TYPE_DEFERRED_MESSAGE_UPDATE = 6;
 const RESPONSE_TYPE_UPDATE_MESSAGE = 7;
 
 const MINECRAFT_STOP_CONFIRM = "minecraft_stop_confirm";
@@ -123,7 +122,7 @@ async function handleMessageComponent(interaction: any) {
     await invokeWorker(interaction, isAdmin);
 
     return success({
-      type: RESPONSE_TYPE_DEFERRED_MESSAGE_UPDATE,
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
       data: {
         content: 'Stopping the Minecraft server...',
         components: []

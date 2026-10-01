@@ -1,7 +1,7 @@
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as resourcegroups from 'aws-cdk-lib/aws-resourcegroups';
@@ -24,6 +24,9 @@ export interface MinecraftServerStackProps extends cdk.StackProps {
   // Minutes with 0 players online before the server auto-stops
   maxIdleDurationInMinutes?: number;
 
+  // Idle check period in minutes
+  idleCheckPeriodInMinutes?: number;
+
   // Number of world backups to retain
   snapshotsToKeep?: number;
 }
@@ -38,6 +41,7 @@ export class InfraStack extends cdk.Stack {
     const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MEDIUM);
     const dataVolumeSizeGiB = props.dataVolumeSizeGiB ?? 8;
     const maxIdleDurationInMinutes = props.maxIdleDurationInMinutes ?? 10;
+    const idleCheckPeriodInMinutes = props.idleCheckPeriodInMinutes ?? 5;
     const snapshotsToKeep = props.snapshotsToKeep ?? 10;
 
     // ---------------------------------------------------------------------
@@ -280,7 +284,7 @@ export class InfraStack extends cdk.Stack {
     // Event Bridge rule to shutdown the server when idle for too long
     // ---------------------------------------------------------------------
     const minecraftIdleCheckRule = new events.Rule(this, 'MinecraftIdleCheckRule', {
-      schedule: events.Schedule.rate(cdk.Duration.minutes(maxIdleDurationInMinutes))
+      schedule: events.Schedule.rate(cdk.Duration.minutes(idleCheckPeriodInMinutes))
     });
 
     minecraftIdleCheckRule.addTarget(new targets.LambdaFunction(serverManagementLambda, {
