@@ -12,6 +12,4 @@ fi
 
 COMMAND="$*"
 
-echo "Executing Minecraft command: $COMMAND"
-
-docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" rcon-cli "$COMMAND"
+docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" rcon-cli "$COMMAND" | sed -E $'s/\x1B\\[[0-9;]*[[:alpha:]]//g'
