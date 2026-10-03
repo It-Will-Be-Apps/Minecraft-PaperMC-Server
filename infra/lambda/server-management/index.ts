@@ -1,10 +1,14 @@
 import { CreateSnapshotCommand, DescribeInstancesCommand, DescribeSnapshotsCommand, EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
+import { ChangeResourceRecordSetsCommand, Route53Client } from '@aws-sdk/client-route-53';
 import { GetCommandInvocationCommand, SendCommandCommand, SSMClient } from '@aws-sdk/client-ssm';
 
 const APP_NAME = process.env.APP_NAME!;
 const EC2_INSTANCE_ID = process.env.EC2_INSTANCE_ID!;
 const MAX_IDLE_DURATION_IN_MINUTES = Number(process.env.MAX_IDLE_DURATION_IN_MINUTES);
 const WORLD_VOLUME_ID = process.env.WORLD_VOLUME_ID;
+const SNAPSHOTS_TO_KEEP = Number(process.env.SNAPSHOTS_TO_KEEP);
+const HOSTED_ZONE_ID = process.env.HOSTED_ZONE_ID;
+const DOMAIN_NAME = process.env.DOMAIN_NAME;
 
 const INTERACTION_TYPE_APPLICATION_COMMAND = 2;
 const INTERACTION_TYPE_MESSAGE_COMPONENT = 3;
@@ -16,9 +20,16 @@ const BUTTON_STYLE_DANGER = 4;
 const MINECRAFT_IDLE_CHECK = 'minecraft-idle-check'
 const MINECRAFT_STOP_CONFIRM = 'minecraft_stop_confirm';
 const MINECRAFT_STOP_CANCEL = 'minecraft_stop_cancel';
+const MINECRAFT_RESTART_CONFIRM = 'minecraft_restart_confirm';
+const MINECRAFT_RESTART_CANCEL = 'minecraft_restart_cancel';
+const MINECRAFT_WIPE_CONFIRM = 'minecraft_wipe_confirm';
+const MINECRAFT_WIPE_CANCEL = 'minecraft_wipe_cancel';
+const MINECRAFT_RESTORE_CONFIRM = 'minecraft_restore_confirm';
+const MINECRAFT_RESTORE_CANCEL = 'minecraft_restore_cancel';
 
 const ec2Client = new EC2Client({});
 const ssmClient = new SSMClient({});
+const route53Client = new Route53Client({});
 
 export const handler = async (event: any) => {
   if (event.type === MINECRAFT_IDLE_CHECK) {
@@ -47,11 +58,11 @@ export const handler = async (event: any) => {
         case 'stop':
           return await handleStop(interaction, isAdmin, false);
         case 'restart':
-          return await handleRestart(interaction, isAdmin);
+          return await handleRestart(interaction, isAdmin, false);
         case 'wipe':
-          return await handleWipe(interaction);
+          return await handleWipe(interaction, false);
         case 'restore':
-          return await handleRestore(interaction);
+          return await handleRestore(interaction, false);
         case 'run':
           return await handleRun(interaction);
         default:
@@ -63,6 +74,12 @@ export const handler = async (event: any) => {
       switch (interaction.data?.custom_id) {
         case MINECRAFT_STOP_CONFIRM:
           return await handleStop(interaction, isAdmin, true);
+        case MINECRAFT_RESTART_CONFIRM:
+          return await handleRestart(interaction, isAdmin, true);
+        case MINECRAFT_WIPE_CONFIRM:
+          return await handleWipe(interaction, true);
+        case MINECRAFT_RESTORE_CONFIRM:
+          return await handleRestore(interaction, true);
         default:
           throw new Error(`Unknown component: ${interaction.data?.custom_id}`);
       }
@@ -141,7 +158,7 @@ async function handleStatus(interaction: any) {
   await updateDiscordResponse(interaction, formatServerStatus(instanceStatus.state, 'online', minecraftStatus.players.join(', ') || 'N/A'));
 }
 
-async function getEc2Status(): Promise<{ state: string, ipAddress: string }> { // TODO 
+async function getEc2Status(): Promise<{ state: string, ipAddress: string }> {
   const response = await ec2Client.send(new DescribeInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
 
   const instance = response.Reservations?.[0]?.Instances?.[0];
@@ -187,20 +204,30 @@ async function runServerScript(scriptName: string, executionTimeoutInSeconds: nu
     ...args.map(arg => `'${arg.replace(/'/g, "'\\''")}'`)
   ].join(' ');
 
-  const response = await ssmClient.send(new SendCommandCommand({
-    InstanceIds: [EC2_INSTANCE_ID],
-    DocumentName: 'AWS-RunShellScript',
-    TimeoutSeconds: 30,
-    Parameters: {
-      commands: [command],
-      executionTimeout: [executionTimeoutInSeconds.toString()]
-    }
-  }));
+  let response;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    try {
+      response = await ssmClient.send(new SendCommandCommand({
+        InstanceIds: [EC2_INSTANCE_ID],
+        DocumentName: 'AWS-RunShellScript',
+        TimeoutSeconds: 30,
+        Parameters: {
+          commands: [command],
+          executionTimeout: [executionTimeoutInSeconds.toString()]
+        }
+      }));
 
-  const commandId = response.Command?.CommandId;
+      break;
+    } catch (error: any) {
+      console.log(`SSM is not ready yet, waiting... attempt ${attempt + 1}/30`);
+      await sleep(2000);
+    }
+  }
+
+  const commandId = response?.Command?.CommandId;
 
   if (!commandId) {
-    throw new Error('SSM command did not return a command ID');
+    throw new Error('Timed out waiting for SSM agent to become ready');
   }
 
   // Wait for the SSM command to finish
@@ -235,48 +262,63 @@ async function runServerScript(scriptName: string, executionTimeoutInSeconds: nu
 }
 
 async function handleStart(interaction: any) {
-  const instanceStatus = await getEc2Status();
+  let instanceStatus = await getEc2Status();
   console.log(`EC2 instance status: ${instanceStatus.state}`);
 
-  if (instanceStatus.state === 'running') {
-    const minecraftStatus = await getMinecraftStatus();
-    console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
-
-    if (minecraftStatus.running) {
-      await updateDiscordResponse(interaction, 'The Minecraft server is already started');
-      return;
-    }
-
-    await runServerScript('deploy.sh', 30);
-    await waitForMinecraft();
-
-    await updateDiscordResponse(interaction, 'The Minecraft server is started and ready to use');
+  if (instanceStatus.state !== 'stopped' && instanceStatus.state !== 'running') {
+    await updateDiscordResponse(interaction, 'The Minecraft server cannot be started right now, please wait a moment and try again');
     return;
   }
 
   if (instanceStatus.state === 'stopped') {
     await ec2Client.send(new StartInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
 
-    await waitForMinecraft();
-    const postStartStatus = await getEc2Status(); // TODO remove when no longer need IP
+    instanceStatus = await waitForEc2();
+    await updateMinecraftDns(instanceStatus.ipAddress);
 
-    await updateDiscordResponse(interaction, `The Minecraft server is started and ready to use, with IP address: ${postStartStatus.ipAddress}`);
+    await waitForMinecraft();
+
+    await updateDiscordResponse(interaction, 'The Minecraft server is started and ready to use');
     return;
   }
 
-  await updateDiscordResponse(interaction, 'The Minecraft server cannot be started right now, please wait a moment and try again');
+  const minecraftStatus = await getMinecraftStatus();
+  console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
+
+  if (minecraftStatus.running) {
+    await updateDiscordResponse(interaction, 'The Minecraft server is already started');
+    return;
+  }
+
+  await runServerScript('deploy.sh', 60);
+  await waitForMinecraft();
+
+  await updateDiscordResponse(interaction, 'The Minecraft server is started and ready to use');
+  return;
+}
+
+async function waitForEc2(): Promise<{ state: string, ipAddress: string }> {
+  let instanceStatus;
+
+  for (let attempt = 0; attempt < 30; attempt++) {
+    console.log(`Waiting for EC2... attempt ${attempt + 1}/30`);
+    
+    instanceStatus = await getEc2Status();
+
+    if (instanceStatus.state === 'running') {
+      console.log('EC2 is running');
+      return instanceStatus;
+    }
+
+    await sleep(4000);
+  }
+
+  throw new Error('Timed out waiting for EC2 to start');
 }
 
 async function waitForMinecraft(): Promise<void> {
   for (let attempt = 0; attempt < 30; attempt++) {
     console.log(`Waiting for Minecraft... attempt ${attempt + 1}/30`);
-
-    const instanceStatus = await getEc2Status();
-
-    if (instanceStatus.state !== 'running') {
-      await sleep(4000);
-      continue;
-    }
 
     try {
       const minecraftStatus = await getMinecraftStatus();
@@ -292,6 +334,33 @@ async function waitForMinecraft(): Promise<void> {
   }
 
   throw new Error('Timed out waiting for Minecraft to start');
+}
+
+async function updateMinecraftDns(publicIp: string) {
+  console.log(`Updating minecraft.${DOMAIN_NAME} to ${publicIp}`);
+
+  await route53Client.send(new ChangeResourceRecordSetsCommand({
+    HostedZoneId: HOSTED_ZONE_ID,
+    ChangeBatch: {
+      Changes: [
+        {
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: `minecraft.${DOMAIN_NAME}`,
+            Type: 'A',
+            TTL: 30,
+            ResourceRecords: [
+              {
+                Value: publicIp
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }));
+
+  console.log(`Updated minecraft.${DOMAIN_NAME} to ${publicIp}`);
 }
 
 async function handleStop(interaction: any, isAdmin: boolean, confirmed: boolean) {
@@ -310,12 +379,12 @@ async function handleStop(interaction: any, isAdmin: boolean, confirmed: boolean
     if (minecraftStatus.running) {
       if (minecraftStatus.players.length > 0) {
         if (!isAdmin) {
-          await updateDiscordResponse(interaction, 'You cannot stop the Minecraft server while players are online'); // TODO
+          await updateDiscordResponse(interaction, 'You cannot stop the Minecraft server while players are online');
           return;
         }
 
         if (!confirmed) {
-          await updateDiscordResponse(interaction, 'There are still players in the game, are you sure you want to stop the server?', MINECRAFT_STOP_CONFIRM, MINECRAFT_STOP_CANCEL); // TODO
+          await updateDiscordResponse(interaction, 'There are still players in the game, are you sure you want to stop the server?', MINECRAFT_STOP_CONFIRM, MINECRAFT_STOP_CANCEL);
           return;
         }
       }
@@ -334,9 +403,9 @@ async function handleStop(interaction: any, isAdmin: boolean, confirmed: boolean
     }
 
     if (snapshotCreated) {
-      await updateDiscordResponse(interaction, 'The Minecraft server is stopped and a backup was created');
+      await updateDiscordResponse(interaction, 'The Minecraft server was successfully stopped and a backup was created');
     } else {
-      await updateDiscordResponse(interaction, 'The Minecraft server is stopped but could not be backed up');
+      await updateDiscordResponse(interaction, 'The Minecraft server was successfully stopped but could not be backed up');
     }
 
     return;
@@ -420,17 +489,68 @@ async function createWorldSnapshot() {
   throw new Error(`Timed out waiting for snapshot ${snapshotId}`);
 }
 
-async function handleRestart(interaction: any, isAdmin: boolean) {
-  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
-  await updateDiscordResponse(interaction, 'The /restart command is not yet implemented');
+async function handleRestart(interaction: any, isAdmin: boolean, confirmed: boolean) {
+  let instanceStatus = await getEc2Status();
+  console.log(`EC2 instance status: ${instanceStatus.state}`);
+
+  if (instanceStatus.state !== 'stopped' && instanceStatus.state !== 'running') {
+    await updateDiscordResponse(interaction, 'The Minecraft server cannot be restarted right now, please wait a moment and try again');
+    return;
+  }
+
+  if (instanceStatus.state === 'stopped') {
+    await ec2Client.send(new StartInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
+
+    instanceStatus = await waitForEc2();
+    await updateMinecraftDns(instanceStatus.ipAddress);
+  }
+
+  const minecraftStatus = await getMinecraftStatus();
+  console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
+
+  if (minecraftStatus.running) {
+    if (minecraftStatus.players.length > 0) {
+      if (!isAdmin) {
+        await updateDiscordResponse(interaction, 'You cannot restart the Minecraft server while players are online');
+        return;
+      }
+
+      if (!confirmed) {
+        await updateDiscordResponse(interaction, 'There are still players in the game, are you sure you want to restart the server?', MINECRAFT_RESTART_CONFIRM, MINECRAFT_RESTART_CANCEL);
+        return;
+      }
+
+      await runServerScript('stop.sh', 60);
+    }
+  }
+
+  await runServerScript('deploy.sh', 60);
+  await waitForMinecraft();
+
+  await updateDiscordResponse(interaction, 'The Minecraft server was successfully restarted');
 }
 
-async function handleWipe(interaction: any) {
-  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
-  await updateDiscordResponse(interaction, 'The /wipe command is not yet implemented');
+async function handleWipe(interaction: any, confirmed: boolean) {
+  const instanceStatus = await getEc2Status();
+  console.log(`EC2 instance status: ${instanceStatus.state}`);
+
+  if (instanceStatus.state !== 'running') {
+    await updateDiscordResponse(interaction, 'The server is not running, use /start first');
+    return;
+  }
+
+  if (!confirmed) {
+    await updateDiscordResponse(interaction, 'Are you sure you want to wipe the Minecraft world?', MINECRAFT_WIPE_CONFIRM, MINECRAFT_WIPE_CANCEL);
+    return;
+  }
+
+  await runServerScript('stop.sh', 60);
+  await runServerScript('wipe.sh', 60);
+
+  await updateDiscordResponse(interaction, 'The Minecraft world was successfully wiped');
 }
 
-async function handleRestore(interaction: any) {
+async function handleRestore(interaction: any, confirmed: boolean) {
   // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
   await updateDiscordResponse(interaction, 'The /restore command is not yet implemented')
 }

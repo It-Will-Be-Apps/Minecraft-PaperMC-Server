@@ -5,6 +5,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as resourcegroups from 'aws-cdk-lib/aws-resourcegroups';
+import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as cdk from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
 import * as fs from 'fs';
@@ -29,6 +30,9 @@ export interface MinecraftServerStackProps extends cdk.StackProps {
 
   // Number of world backups to retain
   snapshotsToKeep?: number;
+
+  // Domain name to reach the server
+  domainName: string;
 }
 
 export class InfraStack extends cdk.Stack {
@@ -43,6 +47,7 @@ export class InfraStack extends cdk.Stack {
     const maxIdleDurationInMinutes = props.maxIdleDurationInMinutes ?? 10;
     const idleCheckPeriodInMinutes = props.idleCheckPeriodInMinutes ?? 5;
     const snapshotsToKeep = props.snapshotsToKeep ?? 10;
+    const domainName = props.domainName;
 
     // ---------------------------------------------------------------------
     // Parameters initialization
@@ -164,6 +169,20 @@ export class InfraStack extends cdk.Stack {
     });
 
     // ---------------------------------------------------------------------
+    // Hosted zone to hold the domain name
+    // ---------------------------------------------------------------------
+    const hostedZone = new route53.PublicHostedZone(this, APP_NAME + '-HostedZone', {
+      zoneName: domainName
+    });
+
+    new route53.ARecord(this, APP_NAME + '-MinecraftDnsRecord', {
+      zone: hostedZone,
+      recordName: 'minecraft',
+      target: route53.RecordTarget.fromIpAddresses('0.0.0.0'),
+      ttl: cdk.Duration.seconds(30)
+    });
+
+    // ---------------------------------------------------------------------
     // Lambda function to interact with the server
     // ---------------------------------------------------------------------
     const serverManagementLambda = new lambda_nodejs.NodejsFunction(this, 'ServerManagement', {
@@ -174,7 +193,10 @@ export class InfraStack extends cdk.Stack {
         APP_NAME: APP_NAME,
         EC2_INSTANCE_ID: serverEc2Instance.instanceId,
         MAX_IDLE_DURATION_IN_MINUTES: String(maxIdleDurationInMinutes),
-        WORLD_VOLUME_ID: worldDataVolume.volumeId
+        WORLD_VOLUME_ID: worldDataVolume.volumeId,
+        SNAPSHOTS_TO_KEEP: String(snapshotsToKeep),
+        HOSTED_ZONE_ID: hostedZone.hostedZoneId,
+        DOMAIN_NAME: domainName
       },
       timeout: cdk.Duration.minutes(10)
     });
@@ -252,6 +274,28 @@ export class InfraStack extends cdk.Stack {
       conditions: {
         StringEquals: {
           'ec2:CreateAction': 'CreateSnapshot'
+        }
+      }
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'route53:ChangeResourceRecordSets'
+      ],
+      resources: [
+        hostedZone.hostedZoneArn
+      ],
+      conditions: {
+        'ForAllValues:StringEquals': {
+          'route53:ChangeResourceRecordSetsNormalizedRecordNames': [
+            `minecraft.${domainName}`
+          ],
+          'route53:ChangeResourceRecordSetsRecordTypes': [
+            'A'
+          ],
+          'route53:ChangeResourceRecordSetsActions': [
+            'UPSERT'
+          ]
         }
       }
     }));

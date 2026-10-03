@@ -17,8 +17,14 @@ const RESPONSE_TYPE_CHANNEL_MESSAGE = 4;
 const RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE = 5;
 const RESPONSE_TYPE_UPDATE_MESSAGE = 7;
 
-const MINECRAFT_STOP_CONFIRM = "minecraft_stop_confirm";
-const MINECRAFT_STOP_CANCEL = "minecraft_stop_cancel";
+const MINECRAFT_STOP_CONFIRM = 'minecraft_stop_confirm';
+const MINECRAFT_STOP_CANCEL = 'minecraft_stop_cancel';
+const MINECRAFT_RESTART_CONFIRM = 'minecraft_restart_confirm';
+const MINECRAFT_RESTART_CANCEL = 'minecraft_restart_cancel';
+const MINECRAFT_WIPE_CONFIRM = 'minecraft_wipe_confirm';
+const MINECRAFT_WIPE_CANCEL = 'minecraft_wipe_cancel';
+const MINECRAFT_RESTORE_CONFIRM = 'minecraft_restore_confirm';
+const MINECRAFT_RESTORE_CANCEL = 'minecraft_restore_cancel';
 
 const SERVER_MANAGEMENT_FUNCTION_NAME = process.env.SERVER_MANAGEMENT_FUNCTION_NAME!;
 
@@ -135,6 +141,72 @@ async function handleMessageComponent(interaction: any) {
       type: RESPONSE_TYPE_UPDATE_MESSAGE,
       data: {
         content: 'Stop command cancelled',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_RESTART_CONFIRM) {
+    await invokeWorker(interaction, isAdmin);
+
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Restarting the Minecraft server...',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_RESTART_CANCEL) {
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Restart command cancelled',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_WIPE_CONFIRM) {
+    await invokeWorker(interaction, isAdmin);
+
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Wiping the Minecraft world...',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_WIPE_CANCEL) {
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Wipe command cancelled',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_RESTORE_CONFIRM) {
+    await invokeWorker(interaction, isAdmin);
+
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Restoring the Minecraft world...',
+        components: []
+      }
+    });
+  }
+
+  if (customId === MINECRAFT_RESTORE_CANCEL) {
+    return success({
+      type: RESPONSE_TYPE_UPDATE_MESSAGE,
+      data: {
+        content: 'Restore command cancelled',
         components: []
       }
     });
