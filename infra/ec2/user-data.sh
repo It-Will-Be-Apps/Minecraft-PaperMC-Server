@@ -41,19 +41,13 @@ git clone __GIT_HUB_REPOSITORY_URL__ .
 git config --system --add safe.directory /opt/minecraft
 
 # ----------------------------------
-# 7. Retrieve the secrets
-# ----------------------------------
-cd /opt/minecraft/server
-touch .env.secrets
-
-# ----------------------------------
-# 8. Enable the SSM agent
+# 7. Enable the SSM agent
 # ----------------------------------
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
 
 # ----------------------------------
-# 9. Prepare the world data volume
+# 8. Prepare the world data volume
 # ----------------------------------
 WORLD_MOUNT="/opt/minecraft/data"
 WORLD_VOLUME_ID="__WORLD_VOLUME_ID__"
@@ -103,7 +97,7 @@ echo "World volume mounted:"
 df -h "$WORLD_MOUNT"
 
 # ----------------------------------
-# 10. Create the deployment service
+# 9. Create the deployment service
 # ----------------------------------
 cat > /etc/systemd/system/minecraft-deploy.service <<'EOF'
 [Unit]
@@ -122,7 +116,7 @@ WantedBy=multi-user.target
 EOF
 
 # ----------------------------------
-# 11. Create the watchdog service
+# 10. Create the watchdog service
 # ----------------------------------
 cat > /etc/systemd/system/minecraft-watchdog.service <<'EOF'
 [Unit]
@@ -141,7 +135,7 @@ WantedBy=multi-user.target
 EOF
 
 # ----------------------------------
-# 12. Enable the services
+# 11. Enable the services
 # ----------------------------------
 systemctl daemon-reload
 systemctl enable --now minecraft-deploy.service

@@ -9,6 +9,5 @@ services:
       - "25565:25565"
     env_file:
       - .env
-      - .env.secrets
     volumes:
       - /opt/minecraft/data:/data

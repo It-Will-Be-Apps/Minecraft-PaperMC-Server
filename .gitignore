@@ -18,4 +18,3 @@ state/
 
 # Project files
 .env.local
-.env.secrets

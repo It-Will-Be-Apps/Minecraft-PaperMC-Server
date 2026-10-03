@@ -2,10 +2,12 @@
 
 set -eu
 
-cd /opt/minecraft/
+SERVER_DIR="/opt/minecraft/server"
+COMPOSE_FILE="$SERVER_DIR/compose.yaml"
+
+cd "$SERVER_DIR"
 git pull
 
-rm -f /opt/minecraft/server/state/*
+rm -f "$SERVER_DIR/state/*"
 
-cd server
-docker compose up -d
+docker compose -f "$COMPOSE_FILE" up -d
