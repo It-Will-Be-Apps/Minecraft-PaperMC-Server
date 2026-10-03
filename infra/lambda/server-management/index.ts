@@ -430,7 +430,7 @@ async function stopEc2() {
     }
 
     if (instanceStatus.state !== 'stopping') {
-      throw new Error(`EC2 entered unexpected state while stopping: ${instanceStatus}`);
+      throw new Error(`EC2 entered unexpected state while stopping: ${instanceStatus.state}`);
     }
   }
 
