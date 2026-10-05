@@ -51,9 +51,8 @@ fi
 echo "Temporary restore device: $DEVICE"
 
 # Mount the volume
-lsblk -f "$DEVICE" # Temp troubleshooting command, remove
-blkid "$DEVICE" || true # Temp troubleshooting command, remove
-mount -o ro,nouuid "$DEVICE" "$MOUNT_POINT"
+xfs_admin -U generate "$DEVICE"
+mount -o ro "$DEVICE" "$MOUNT_POINT"
 echo "Restore volume mounted"
 
 # Wipe the world data

@@ -641,7 +641,7 @@ async function handleWipe(interaction: any, confirmed: boolean) {
 }
 
 async function handleRestoreAutocomplete(interaction: any) {
-  const query = interaction.data?.options?.find((option: any) => option.name === 'snapshot')?.value ?? '';
+  const query = interaction.data?.options?.find((option: any) => option.name === 'backup')?.value ?? '';
 
   const snapshots = (await getWorldSnapshots())
     .filter(snapshot => snapshot.SnapshotId && snapshot.StartTime)
@@ -676,13 +676,6 @@ async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
     return;
   }
 
-  const minecraftStatus = await getMinecraftStatus();
-  console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
-
-  if (minecraftStatus.running) {
-    await runServerScript('stop.sh', 60);
-  }
-
   const snapshotId = confirmedSnapshotId ? confirmedSnapshotId : interaction.data?.options?.find((option: any) => option.name === 'backup')?.value;
 
   if (!snapshotId) {
@@ -710,6 +703,13 @@ async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
 
   console.log(`Restoring world snapshot with ID: ${snapshotToRestore?.SnapshotId}`);
 
+  const minecraftStatus = await getMinecraftStatus();
+  console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
+
+  if (minecraftStatus.running) {
+    await runServerScript('stop.sh', 60);
+  }
+
   let temporaryVolumeId: string | undefined;
   let temporaryVolumeAttached = false;
 
@@ -721,7 +721,7 @@ async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
     temporaryVolumeAttached = true;
     console.log(`Attached temporary restore volume ${temporaryVolumeId}`);
 
-    await runServerScript(`restore-world.sh ${temporaryVolumeId}`, 300);
+    await runServerScript('restore-world.sh', 300, temporaryVolumeId);
 
     await detachRestoreVolume(temporaryVolumeId);
     temporaryVolumeAttached = false;
