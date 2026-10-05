@@ -672,7 +672,7 @@ async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
   console.log(`EC2 instance status: ${instanceStatus.state}`);
 
   if (instanceStatus.state !== 'running') {
-    await updateDiscordResponse(interaction, 'The server is not start, use /start first');
+    await updateDiscordResponse(interaction, 'The server is not started, use /start first');
     return;
   }
 
@@ -729,26 +729,24 @@ async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
     await deleteRestoreVolume(temporaryVolumeId);
     temporaryVolumeId = undefined;
 
-    await updateDiscordResponse(interaction, 'Minecraft world restored successfully, ');
+    await updateDiscordResponse(interaction, 'The Minecraft world was successfully restored');
   } catch (error: any) {
     console.error('Minecraft world restore failed: ', error);
 
     // Try to detach the temporary volume if necessary.
     try {
       if (temporaryVolumeId && temporaryVolumeAttached) {
-        console.log(`Detaching temporary restore volume ${temporaryVolumeId}...`);
         await detachRestoreVolume(temporaryVolumeId);
       }
 
       if (temporaryVolumeId) {
-        console.log(`Deleting temporary restore volume ${temporaryVolumeId}...`);
         await deleteRestoreVolume(temporaryVolumeId);
       }
 
       await updateDiscordResponse(interaction, `❌ An error occurred: ${error.message}`);
     } catch (cleanupError) {
       console.error('Failed to clean up the temporary restore volume: ', cleanupError);
-      throw new error('Failed to restore the backup, and temporary volume cleanup failed, manual intervention may be required');
+      throw new Error('Failed to restore the backup, and temporary volume cleanup failed, manual intervention may be required');
     }
   }
 }
@@ -879,7 +877,7 @@ async function detachRestoreVolume(volumeId: string) {
 }
 
 async function deleteRestoreVolume(volumeId: string) {
- console.log(`Deleting EBS restore volume ${volumeId}...`);
+ console.log(`Deleting temporary restore volume ${volumeId}...`);
 
   await ec2Client.send(new DeleteVolumeCommand({
       VolumeId: volumeId

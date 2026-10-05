@@ -51,7 +51,9 @@ fi
 echo "Temporary restore device: $DEVICE"
 
 # Mount the volume
-mount -o ro "$DEVICE" "$MOUNT_POINT"
+lsblk -f "$DEVICE" # Temp troubleshooting command, remove
+blkid "$DEVICE" || true # Temp troubleshooting command, remove
+mount -o ro,nouuid "$DEVICE" "$MOUNT_POINT"
 echo "Restore volume mounted"
 
 # Wipe the world data
@@ -60,6 +62,6 @@ find "$WORLD_DATA" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 
 # Restore the world from the snapshot
 echo "Restoring Minecraft world..."
-cp -a "$MOUNT_POINT" "$WORLD_DATA"
+cp -a "$MOUNT_POINT"/. "$WORLD_DATA"/
 
-echo "Minecraft world restored."
+echo "Minecraft world restored"

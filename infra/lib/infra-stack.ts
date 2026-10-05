@@ -291,8 +291,7 @@ export class InfraStack extends cdk.Stack {
         this.formatArn({
           service: 'ec2',
           resource: 'volume',
-          resourceName: '*',
-          account: ''
+          resourceName: '*'
         }),
         this.formatArn({
           service: 'ec2',
@@ -300,6 +299,24 @@ export class InfraStack extends cdk.Stack {
           resourceName: serverEc2Instance.instanceId
         })
       ]
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:CreateTags'
+      ],
+      resources: [
+        this.formatArn({
+          service: 'ec2',
+          resource: 'volume',
+          resourceName: '*'
+        })
+      ],
+      conditions: {
+        StringEquals: {
+          'ec2:CreateAction': 'CreateVolume'
+        }
+      }
     }));
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
