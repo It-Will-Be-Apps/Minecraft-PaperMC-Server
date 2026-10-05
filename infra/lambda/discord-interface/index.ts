@@ -1,4 +1,4 @@
-import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { InvokeCommand, InvokeCommandOutput, LambdaClient } from '@aws-sdk/client-lambda';
 
 import { verifyKey } from 'discord-interactions';
 
@@ -11,11 +11,13 @@ const DISCORD_PLAYER_ROLE_ID = process.env.DISCORD_PLAYER_ROLE_ID;
 const INTERACTION_TYPE_PING = 1;
 const INTERACTION_TYPE_APPLICATION_COMMAND = 2;
 const INTERACTION_TYPE_MESSAGE_COMPONENT = 3;
+const INTERACTION_TYPE_AUTOCOMPLETE = 4;
 
 const RESPONSE_TYPE_PONG = 1;
 const RESPONSE_TYPE_CHANNEL_MESSAGE = 4;
 const RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE = 5;
 const RESPONSE_TYPE_UPDATE_MESSAGE = 7;
+const RESPONSE_TYPE_AUTOCOMPLETE_RESULT = 8;
 
 const MINECRAFT_STOP_CONFIRM = 'minecraft_stop_confirm';
 const MINECRAFT_STOP_CANCEL = 'minecraft_stop_cancel';
@@ -64,6 +66,11 @@ export const handler = async (event: any) => {
     return await handleMessageComponent(interaction);
   }
 
+  // Autocomplete request
+  if (interaction.type === INTERACTION_TYPE_AUTOCOMPLETE) {
+    return await handleAutocomplete(interaction);
+  }
+
   return badRequest('Unknown interaction type');
 }
 
@@ -101,10 +108,10 @@ function interactionIsValid(interaction: any, command: string, isAdmin: boolean)
     && (!adminOnly || isAdmin);
 }
 
-async function invokeWorker(interaction: any, isAdmin: boolean) {
-  await lambdaClient.send(new InvokeCommand({
+async function invokeWorker(interaction: any, isAdmin: boolean, synchronous = false): Promise<InvokeCommandOutput> {
+  return await lambdaClient.send(new InvokeCommand({
     FunctionName: SERVER_MANAGEMENT_FUNCTION_NAME,
-    InvocationType: 'Event',
+    InvocationType: synchronous ? 'RequestResponse' : 'Event',
     Payload: Buffer.from(JSON.stringify({ interaction, isAdmin }))
   }));
 }
@@ -190,7 +197,7 @@ async function handleMessageComponent(interaction: any) {
     });
   }
 
-  if (customId === MINECRAFT_RESTORE_CONFIRM) {
+  if (customId.startsWith(MINECRAFT_RESTORE_CONFIRM)) {
     await invokeWorker(interaction, isAdmin);
 
     return success({
@@ -213,6 +220,37 @@ async function handleMessageComponent(interaction: any) {
   }
 
   return badRequest('Unknown component');
+}
+
+async function handleAutocomplete(interaction: any) {
+  const command = interaction.data?.name;
+
+  if (!commandIsValid(command)) {
+    return badRequest('Unknown command');
+  }
+
+  const isAdmin = interaction.member?.user?.id === DISCORD_OWNER_USER_ID
+
+  if (interaction.guild_id !== DISCORD_GUILD_ID
+      || interaction.channel_id !== DISCORD_CONTROL_CHANNEL_ID
+      || !interaction.member?.roles?.includes(DISCORD_PLAYER_ROLE_ID)
+      || !isAdmin) {
+      
+    return success({
+      type: RESPONSE_TYPE_AUTOCOMPLETE_RESULT,
+      data: { choices: [] }
+    });
+  }
+
+  const response = await invokeWorker(interaction, isAdmin, true);
+  const choices = JSON.parse(new TextDecoder("utf-8").decode(response.Payload));
+
+  return success({
+    type: RESPONSE_TYPE_AUTOCOMPLETE_RESULT,
+    data: {
+      choices: choices
+    }
+  });
 }
 
 const success = (body: any) => ({

@@ -205,6 +205,8 @@ export class InfraStack extends cdk.Stack {
       actions: [
         'ec2:DescribeInstances',
         'ec2:DescribeSnapshots',
+        'ec2:DescribeVolumes',
+        'ec2:CreateVolume',
         'ssm:GetCommandInvocation'
       ],
       resources: ['*']
@@ -242,7 +244,8 @@ export class InfraStack extends cdk.Stack {
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: [
-        'ec2:CreateSnapshot'
+        'ec2:CreateSnapshot',
+        'ec2:DeleteSnapshot'
       ],
       resources: [
         this.formatArn({
@@ -276,6 +279,27 @@ export class InfraStack extends cdk.Stack {
           'ec2:CreateAction': 'CreateSnapshot'
         }
       }
+    }));
+
+    serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:AttachVolume',
+        'ec2:DetachVolume',
+        'ec2:DeleteVolume'
+      ],
+      resources: [
+        this.formatArn({
+          service: 'ec2',
+          resource: 'volume',
+          resourceName: '*',
+          account: ''
+        }),
+        this.formatArn({
+          service: 'ec2',
+          resource: 'instance',
+          resourceName: serverEc2Instance.instanceId
+        })
+      ]
     }));
 
     serverManagementLambda.addToRolePolicy(new iam.PolicyStatement({

@@ -1,17 +1,32 @@
-import { CreateSnapshotCommand, DescribeInstancesCommand, DescribeSnapshotsCommand, EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
+import {
+  AttachVolumeCommand,
+  CreateSnapshotCommand,
+  CreateVolumeCommand,
+  DeleteSnapshotCommand,
+  DeleteVolumeCommand,
+  DescribeInstancesCommand,
+  DescribeSnapshotsCommand,
+  DescribeVolumesCommand,
+  DetachVolumeCommand,
+  EC2Client,
+  Snapshot,
+  StartInstancesCommand,
+  StopInstancesCommand
+} from '@aws-sdk/client-ec2';
 import { ChangeResourceRecordSetsCommand, Route53Client } from '@aws-sdk/client-route-53';
 import { GetCommandInvocationCommand, SendCommandCommand, SSMClient } from '@aws-sdk/client-ssm';
 
 const APP_NAME = process.env.APP_NAME!;
 const EC2_INSTANCE_ID = process.env.EC2_INSTANCE_ID!;
 const MAX_IDLE_DURATION_IN_MINUTES = Number(process.env.MAX_IDLE_DURATION_IN_MINUTES);
-const WORLD_VOLUME_ID = process.env.WORLD_VOLUME_ID;
+const WORLD_VOLUME_ID = process.env.WORLD_VOLUME_ID!;
 const SNAPSHOTS_TO_KEEP = Number(process.env.SNAPSHOTS_TO_KEEP);
 const HOSTED_ZONE_ID = process.env.HOSTED_ZONE_ID;
 const DOMAIN_NAME = process.env.DOMAIN_NAME;
 
 const INTERACTION_TYPE_APPLICATION_COMMAND = 2;
 const INTERACTION_TYPE_MESSAGE_COMPONENT = 3;
+const INTERACTION_TYPE_AUTOCOMPLETE = 4;
 const COMPONENT_TYPE_ACTION_ROW = 1;
 const COMPONENT_TYPE_BUTTON = 2;
 const BUTTON_STYLE_SECONDARY = 2;
@@ -46,6 +61,7 @@ export const handler = async (event: any) => {
     const interactionType = interaction.type;
     const isAdmin = event.isAdmin;
 
+    // Application command
     if (interactionType === INTERACTION_TYPE_APPLICATION_COMMAND) {
       const commandName = interaction.data?.name;
       console.log(`Processing command: ${commandName}`);
@@ -62,7 +78,7 @@ export const handler = async (event: any) => {
         case 'wipe':
           return await handleWipe(interaction, false);
         case 'restore':
-          return await handleRestore(interaction, false);
+          return await handleRestore(interaction);
         case 'run':
           return await handleRun(interaction);
         default:
@@ -70,18 +86,40 @@ export const handler = async (event: any) => {
       }
     }
 
+    // Message component
     if (interactionType === INTERACTION_TYPE_MESSAGE_COMPONENT) {
-      switch (interaction.data?.custom_id) {
-        case MINECRAFT_STOP_CONFIRM:
-          return await handleStop(interaction, isAdmin, true);
-        case MINECRAFT_RESTART_CONFIRM:
+      const customId = interaction.data?.custom_id;
+
+      if (customId === MINECRAFT_STOP_CONFIRM) {
+        return await handleStop(interaction, isAdmin, true);
+      }
+
+      if (customId === MINECRAFT_RESTART_CONFIRM) {
           return await handleRestart(interaction, isAdmin, true);
-        case MINECRAFT_WIPE_CONFIRM:
+      }
+
+      if (customId === MINECRAFT_WIPE_CONFIRM) {
           return await handleWipe(interaction, true);
-        case MINECRAFT_RESTORE_CONFIRM:
-          return await handleRestore(interaction, true);
+      }
+
+      if (customId.startsWith(MINECRAFT_RESTORE_CONFIRM)) {
+        const snapshotId = customId.split(":")[1];
+        return await handleRestore(interaction, snapshotId);
+      }
+
+      throw new Error(`Unknown component: ${interaction.data?.custom_id}`);
+    }
+
+    // Autocomplete request
+    if (interaction.type === INTERACTION_TYPE_AUTOCOMPLETE) {
+      const commandName = interaction.data?.name;
+      console.log(`Processing autocomplete for command: ${commandName}`);
+
+      switch (commandName) {
+        case 'restore':
+          return await handleRestoreAutocomplete(interaction);
         default:
-          throw new Error(`Unknown component: ${interaction.data?.custom_id}`);
+          throw new Error(`Unknown command: ${commandName}`);
       }
     }
 
@@ -158,17 +196,19 @@ async function handleStatus(interaction: any) {
   await updateDiscordResponse(interaction, formatServerStatus(instanceStatus.state, 'online', minecraftStatus.players.join(', ') || 'N/A'));
 }
 
-async function getEc2Status(): Promise<{ state: string, ipAddress: string }> {
+async function getEc2Status(): Promise<{ state: string, ipAddress: string, availabilityZone?: string }> {
   const response = await ec2Client.send(new DescribeInstancesCommand({ InstanceIds: [EC2_INSTANCE_ID] }));
 
   const instance = response.Reservations?.[0]?.Instances?.[0];
+
   if (!instance) {
     throw new Error('EC2 instance not found');
   }
 
   return {
     state: instance.State?.Name ?? 'unknown',
-    ipAddress: instance.PublicIpAddress || 'unknown'
+    ipAddress: instance.PublicIpAddress || 'unknown',
+    availabilityZone: instance.Placement?.AvailabilityZone
   }
 }
 
@@ -297,7 +337,7 @@ async function handleStart(interaction: any) {
   return;
 }
 
-async function waitForEc2(): Promise<{ state: string, ipAddress: string }> {
+async function waitForEc2(): Promise<{ state: string, ipAddress: string, availabilityZone?: string }> {
   let instanceStatus;
 
   for (let attempt = 0; attempt < 30; attempt++) {
@@ -478,6 +518,11 @@ async function createWorldSnapshot() {
     console.log(`Snapshot ${snapshotId} state: ${snapshot.State}`);
 
     if (snapshot.State === 'completed') {
+      try {
+        rotateWorldSnapshots()
+      } catch (error: any) {
+        console.error('Failed to rotate world snapshots: ', error);
+      }
       return;
     }
 
@@ -487,6 +532,51 @@ async function createWorldSnapshot() {
   }
 
   throw new Error(`Timed out waiting for snapshot ${snapshotId}`);
+}
+
+async function rotateWorldSnapshots() {
+  const snapshots = await getWorldSnapshots();
+  snapshots.sort((first, second) => (first.StartTime?.getTime() ?? 0) - (second.StartTime?.getTime() ?? 0));
+
+  console.log(`Found ${snapshots.length} Minecraft world snapshots`);
+
+  const snapshotsToDelete = snapshots.slice(0, Math.max(0, snapshots.length - SNAPSHOTS_TO_KEEP));
+
+  for (const snapshot of snapshotsToDelete) {
+    if (!snapshot.SnapshotId) {
+      console.log("continuing");
+      continue;
+    }
+
+    console.log(`Deleting old snapshot ${snapshot.SnapshotId}`);
+
+    await ec2Client.send(new DeleteSnapshotCommand({
+      SnapshotId: snapshot.SnapshotId
+    }));
+
+    console.log(`Deleted snapshot ${snapshot.SnapshotId}`);
+  }
+}
+
+async function getWorldSnapshots(): Promise<Snapshot[]> {
+  const response = await ec2Client.send(new DescribeSnapshotsCommand({
+    Filters: [
+      {
+        Name: 'volume-id',
+        Values: [WORLD_VOLUME_ID]
+      },
+      {
+        Name: 'tag:Application',
+        Values: [APP_NAME]
+      },
+      {
+        Name: 'status',
+        Values: ['completed']
+      }
+    ]
+  }));
+
+  return response.Snapshots ?? [];
 }
 
 async function handleRestart(interaction: any, isAdmin: boolean, confirmed: boolean) {
@@ -550,9 +640,252 @@ async function handleWipe(interaction: any, confirmed: boolean) {
   await updateDiscordResponse(interaction, 'The Minecraft world was successfully wiped');
 }
 
-async function handleRestore(interaction: any, confirmed: boolean) {
-  // console.log(`EC2 instance state: ${state}`); TODO at least 1 log
-  await updateDiscordResponse(interaction, 'The /restore command is not yet implemented')
+async function handleRestoreAutocomplete(interaction: any) {
+  const query = interaction.data?.options?.find((option: any) => option.name === 'snapshot')?.value ?? '';
+
+  const snapshots = (await getWorldSnapshots())
+    .filter(snapshot => snapshot.SnapshotId && snapshot.StartTime)
+    .sort((first, second) => (second.StartTime?.getTime() ?? 0) - (first.StartTime?.getTime() ?? 0))
+    .map(snapshot => ({ name: formatSnapshotDate(snapshot.StartTime!), value: snapshot.SnapshotId }))
+    .filter(snapshot => snapshot.name.includes(query))
+
+  console.log(`Found ${snapshots.length} Minecraft world snapshots`);
+
+  return snapshots;
+}
+
+function formatSnapshotDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
+  }).format(date);
+}
+
+async function handleRestore(interaction: any, confirmedSnapshotId?: string) {
+  let instanceStatus = await getEc2Status();
+  console.log(`EC2 instance status: ${instanceStatus.state}`);
+
+  if (instanceStatus.state !== 'running') {
+    await updateDiscordResponse(interaction, 'The server is not start, use /start first');
+    return;
+  }
+
+  const minecraftStatus = await getMinecraftStatus();
+  console.log(`Minecraft server status: ${JSON.stringify(minecraftStatus)}`);
+
+  if (minecraftStatus.running) {
+    await runServerScript('stop.sh', 60);
+  }
+
+  const snapshotId = confirmedSnapshotId ? confirmedSnapshotId : interaction.data?.options?.find((option: any) => option.name === 'backup')?.value;
+
+  if (!snapshotId) {
+    await updateDiscordResponse(interaction, 'No backup was specified');
+    return;
+  }
+
+  const snapshotToRestore = (await getWorldSnapshots()).find(snapshot => snapshot.SnapshotId === snapshotId);
+
+  if (!snapshotToRestore) {
+    await updateDiscordResponse(interaction, 'The selected backup could not be found');
+    return;
+  }
+
+  if (!snapshotToRestore.StartTime) {
+    await updateDiscordResponse(interaction, 'The selected backup could not be restored, please try another backup');
+    return;
+  }
+
+  if (!confirmedSnapshotId) {
+    const snapshotDate = formatSnapshotDate(snapshotToRestore.StartTime);
+    await updateDiscordResponse(interaction, `Restore Minecraft world with backup **${snapshotDate}**?`, `${MINECRAFT_RESTORE_CONFIRM}:${snapshotId}`, MINECRAFT_RESTORE_CANCEL);
+    return;
+  }
+
+  console.log(`Restoring world snapshot with ID: ${snapshotToRestore?.SnapshotId}`);
+
+  let temporaryVolumeId: string | undefined;
+  let temporaryVolumeAttached = false;
+
+  try {
+    temporaryVolumeId = await createRestoreVolume(snapshotId, instanceStatus.availabilityZone!);
+    console.log(`Created temporary restore volume ${temporaryVolumeId}`);
+
+    await attachRestoreVolume(temporaryVolumeId, EC2_INSTANCE_ID);
+    temporaryVolumeAttached = true;
+    console.log(`Attached temporary restore volume ${temporaryVolumeId}`);
+
+    await runServerScript(`restore-world.sh ${temporaryVolumeId}`, 300);
+
+    await detachRestoreVolume(temporaryVolumeId);
+    temporaryVolumeAttached = false;
+
+    await deleteRestoreVolume(temporaryVolumeId);
+    temporaryVolumeId = undefined;
+
+    await updateDiscordResponse(interaction, 'Minecraft world restored successfully, ');
+  } catch (error: any) {
+    console.error('Minecraft world restore failed: ', error);
+
+    // Try to detach the temporary volume if necessary.
+    try {
+      if (temporaryVolumeId && temporaryVolumeAttached) {
+        console.log(`Detaching temporary restore volume ${temporaryVolumeId}...`);
+        await detachRestoreVolume(temporaryVolumeId);
+      }
+
+      if (temporaryVolumeId) {
+        console.log(`Deleting temporary restore volume ${temporaryVolumeId}...`);
+        await deleteRestoreVolume(temporaryVolumeId);
+      }
+
+      await updateDiscordResponse(interaction, `❌ An error occurred: ${error.message}`);
+    } catch (cleanupError) {
+      console.error('Failed to clean up the temporary restore volume: ', cleanupError);
+      throw new error('Failed to restore the backup, and temporary volume cleanup failed, manual intervention may be required');
+    }
+  }
+}
+
+async function createRestoreVolume(snapshotId: string, availabilityZone: string): Promise<string> {
+  console.log(`Creating temporary restore volume from snapshot ${snapshotId}...`);
+
+  const response = await ec2Client.send(new CreateVolumeCommand({
+    SnapshotId: snapshotId,
+    AvailabilityZone: availabilityZone,
+    VolumeType: 'gp3',
+    TagSpecifications: [
+      {
+        ResourceType: 'volume',
+        Tags: [
+          { Key: 'Application', Value: APP_NAME }
+        ]
+      }
+    ]
+  }));
+
+  const volumeId = response.VolumeId;
+
+  if (!volumeId) {
+    throw new Error('Creating the temporary restore volume did not return a volume ID');
+  }
+
+  for (let attempt = 0; attempt < 60; attempt++) {
+    console.log(`Waiting for temporary restore volume to become available... attempt ${attempt + 1}/60`);
+    await sleep(2000);
+
+    const result = await ec2Client.send(new DescribeVolumesCommand({
+      VolumeIds: [volumeId]
+    }));
+
+    const volume = result.Volumes?.[0];
+
+    if (!volume) {
+      throw new Error(`Temporary volume ${volumeId} could not be found`);
+    }
+
+    console.log(`Temporary volume ${volumeId} state: ${volume.State}`);
+
+    if (volume.State === 'available') {
+      return volumeId;
+    }
+
+    if (volume.State === 'error') {
+      throw new Error(`Temporary volume ${volumeId} entered an error state`);
+    }
+  }
+
+  throw new Error(`Timed out waiting for temporary volume ${volumeId} to become available`);
+}
+
+async function attachRestoreVolume(volumeId: string, instanceId: string) {
+  const device = '/dev/sdg';
+  console.log(`Attaching temporary restore volume ${volumeId} to ${instanceId} as ${device}...`);
+
+  await ec2Client.send(new AttachVolumeCommand({
+    VolumeId: volumeId,
+    InstanceId: instanceId,
+    Device: device
+  }));
+
+  for (let attempt = 0; attempt < 60; attempt++) {
+    console.log(`Waiting for EBS volume to attach... attempt ${attempt + 1}/60`);
+    await sleep(2000);
+
+    const result = await ec2Client.send(new DescribeVolumesCommand({
+      VolumeIds: [volumeId]
+    }));
+
+    const volume = result.Volumes?.[0];
+
+    if (!volume) {
+      throw new Error(`Temporary volume ${volumeId} could not be found`);
+    }
+
+    const attachment = volume.Attachments?.find(attachment => attachment.InstanceId === instanceId);
+    console.log(`Temporary volume ${volumeId} attachment state: ${attachment?.State}`);
+
+    if (attachment?.State === 'attached') {
+      return;
+    }
+
+    if (attachment?.State === 'detached') {
+      throw new Error(`Temporary volume ${volumeId} unexpectedly became detached`);
+    }
+  }
+
+  throw new Error(`Timed out waiting for temporary volume ${volumeId} to attach`);
+}
+
+async function detachRestoreVolume(volumeId: string) {
+  console.log(`Detaching temporary restore volume ${volumeId}...`);
+
+  await ec2Client.send(new DetachVolumeCommand({
+    VolumeId: volumeId
+  }));
+
+  for (let attempt = 0; attempt < 60; attempt++) {
+    console.log(`Waiting for EBS volume to detach... attempt ${attempt + 1}/60`);
+    await sleep(2000);
+
+    const result = await ec2Client.send(new DescribeVolumesCommand({
+      VolumeIds: [volumeId]
+    }));
+
+    const volume = result.Volumes?.[0];
+
+    if (!volume) {
+      throw new Error(`Temporary volume ${volumeId} could not be found`);
+    }
+
+    console.log(`Temporary volume ${volumeId} state: ${volume.State}`);
+
+    if (volume.State === 'available') {
+      return;
+    }
+
+    if (volume.State === 'error') {
+      throw new Error(`Temporary volume ${volumeId} entered an error state while detaching`);
+    }
+  }
+
+  throw new Error(`Timed out waiting for temporary volume ${volumeId} to detach`);
+}
+
+async function deleteRestoreVolume(volumeId: string) {
+ console.log(`Deleting EBS restore volume ${volumeId}...`);
+
+  await ec2Client.send(new DeleteVolumeCommand({
+      VolumeId: volumeId
+  }));
+
+  console.log(`Deleted temporary restore volume ${volumeId}`);
 }
 
 async function handleRun(interaction: any) {
