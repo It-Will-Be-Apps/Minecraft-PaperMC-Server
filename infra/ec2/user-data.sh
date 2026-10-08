@@ -4,9 +4,13 @@
 # 1. General setup
 # ----------------------------------
 set -eux
+
 # This creates a very useful for troubleshooting user data errors, by running cat /var/log/user-data.log on the instance
 exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 dnf update -y
+
+# Save the S3 bucket name in an environment variable
+export PLUGINS_BUCKET_NAME="__PLUGINS_BUCKET_NAME__"
 
 # ----------------------------------
 # 2. Install Docker

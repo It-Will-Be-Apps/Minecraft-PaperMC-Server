@@ -6,6 +6,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as resourcegroups from 'aws-cdk-lib/aws-resourcegroups';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cdk from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
 import * as fs from 'fs';
@@ -42,7 +43,8 @@ export class InfraStack extends cdk.Stack {
     const APP_NAME = 'MinecraftPaperMCServer';
 
     const gitHubRepositoryUrl = props.gitHubRepositoryUrl;
-    const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MEDIUM);
+    const gitHubRepository = gitHubRepositoryUrl.replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.LARGE);
     const dataVolumeSizeGiB = props.dataVolumeSizeGiB ?? 8;
     const maxIdleDurationInMinutes = props.maxIdleDurationInMinutes ?? 10;
     const idleCheckPeriodInMinutes = props.idleCheckPeriodInMinutes ?? 5;
@@ -76,6 +78,44 @@ export class InfraStack extends cdk.Stack {
     if (!discordOwnerUserId) {
       throw new Error('Missing required parameter discordOwnerUserId');
     }
+
+    // ---------------------------------------------------------------------
+    // IAM role to allow GitHub to update the plugins bucket
+    // ---------------------------------------------------------------------
+    const githubOidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
+      this,
+      'GitHubOidcProvider',
+      `arn:aws:iam::${this.account}:oidc-provider/token.actions.githubusercontent.com`
+    );
+
+    const githubDeploymentRole = new iam.Role(this, 'GitHubDeploymentRole', {
+      roleName: `${APP_NAME}-GitHubDeploymentRole`,
+      assumedBy: new iam.WebIdentityPrincipal(
+        githubOidcProvider.openIdConnectProviderArn,
+        {
+          StringEquals: {
+            'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com'
+          },
+          StringLike: {
+            'token.actions.githubusercontent.com:sub':
+              `repo:${gitHubRepository}:ref:refs/heads/main`
+          }
+        }
+      )
+    });
+
+    // ---------------------------------------------------------------------
+    // S3 Bucket to hold the custom plugins
+    // ---------------------------------------------------------------------
+    const pluginsBucket = new s3.Bucket(this, APP_NAME + '-PluginsBucket', {
+      bucketName: 'minecraft-papermc-server-plugins-bucket',
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
+    });
+
+    pluginsBucket.grantRead(serverEc2InstanceRole, '*');
+    pluginsBucket.grantPut(githubDeploymentRole, '*');
 
     // ---------------------------------------------------------------------
     // VPC to host the server
@@ -115,11 +155,14 @@ export class InfraStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
     });
 
-    serverEc2InstanceRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
+    serverEc2InstanceRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')
+    );
 
     const userDataScript = fs.readFileSync(path.join(__dirname, '..', 'ec2', 'user-data.sh'), 'utf8')
         .replace('__WORLD_VOLUME_ID__', worldDataVolumeId)
-        .replace('__GIT_HUB_REPOSITORY_URL__', gitHubRepositoryUrl);
+        .replace('__GIT_HUB_REPOSITORY_URL__', gitHubRepositoryUrl)
+        .replace('__PLUGINS_BUCKET_NAME__', pluginsBucket.bucketName);
 
     const userData = ec2.UserData.custom(userDataScript);
 
