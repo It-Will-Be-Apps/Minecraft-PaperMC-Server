@@ -22,6 +22,15 @@ RUN echo "PS1='\[\\\033[01;32m\]\u \[\\\033[35m\]\s \[\\\033[01;33m\]\w \[\\\033
 # Install Libatomic1, required for recent Node versions
 RUN apt-get -y install libatomic1
 
+# Install JDK
+RUN apt-get -y install openjdk-25-jdk
+
+#Install zip, required for sdk
+RUN apt-get -y install zip
+
+#Install Sdkman and Gradle
+RUN curl -s https://get.sdkman.io | bash && bash -c "source /root/.sdkman/bin/sdkman-init.sh && sdk install gradle"
+
 # Install NVM
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 

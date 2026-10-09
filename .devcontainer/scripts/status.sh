@@ -12,6 +12,15 @@ echo 'Git:' $(git --version)
 # Show the installed version of Libatomic
 echo 'Libatomic:' $(dpkg-query -W -f='${Version}\n' libatomic1)
 
+# Show the installed version of Zip
+echo 'Zip:' $(zip -v)
+
+# Show the installed version of Sdkman
+source $HOME/.sdkman/bin/sdkman-init.sh && echo 'Sdkman:' $(sdk version)
+
+# Show the installed version of Gradle
+echo 'Gradle:' $(gradle -v)
+
 # Show the installed version of NVM
 source $NVM_DIR/nvm.sh && echo 'NVM:' $(nvm --version)
 

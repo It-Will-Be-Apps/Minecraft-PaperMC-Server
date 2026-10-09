@@ -1,0 +1,49 @@
+name: Build and deploy plugins to AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+    - 'plugins/'
+    - '.github/workflows/deploy-plugins.yml'
+    - '.github/scripts/'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: Build the plugins and deployt them to AWS
+    runs-on: ubuntu-latest
+
+    steps: 
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build all plugins
+        run: bash .github/scripts/build-plugins.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Upload plugins to S3
+        env:
+          BUCKET_NAME: ${{ vars.PLUGINS_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          aws s3 cp dist/ "s3://${BUCKET_NAME}/" --recursive --exclude "*" --include "*.jar"

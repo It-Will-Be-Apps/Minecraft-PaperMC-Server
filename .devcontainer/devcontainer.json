@@ -23,7 +23,10 @@
     "customizations": {
         "vscode": {
             "settings": {},
-            "extensions": ["AmazonWebServices.aws-toolkit-vscode"]
+            "extensions": [
+                "amazonwebservices.aws-toolkit-vscode",
+                "vscjava.vscode-java-pack"
+            ]
         }
     },
     "runArgs": [

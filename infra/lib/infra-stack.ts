@@ -452,5 +452,7 @@ export class InfraStack extends cdk.Stack {
     // Useful outputs from the generated resources
     new cdk.CfnOutput(this, 'DiscordFunctionUrl', { value: discordInterfaceLambdaUrl.url });
     new cdk.CfnOutput(this, 'EC2SSHPolicyArn', { value: serverEc2InstanceSSHPolicy.managedPolicyArn });
+    new cdk.CfnOutput(this, 'PluginsBucketName', { value: pluginsBucket.bucketName });
+    new cdk.CfnOutput(this, 'GitHubDeploymentRoleArn', { value: githubDeploymentRole.roleArn });
   }
 }

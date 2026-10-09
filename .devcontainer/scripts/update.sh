@@ -22,6 +22,23 @@ echo 'Updating Libatomic...'
 apt-get -y install libatomic1
 echo 'Libatomic updated!'
 
+# Update Zip
+echo 'Updating Zip...'
+apt-get -y install zip
+echo 'Zip updated!'
+
+# Update Sdkman
+echo 'Updating Sdkman...'
+source $HOME/.sdkman/bin/sdkman-init.sh
+sdk selfupdate force
+echo 'Sdkman updated!'
+
+# Update Sdkman
+echo 'Updating Gradle...'
+source $HOME/.sdkman/bin/sdkman-init.sh
+sdk upgrade gradle
+echo 'Gradle updated!'
+
 # Update NVM
 echo 'Updating NVM...'
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
