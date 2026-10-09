@@ -9,8 +9,8 @@ set -eux
 exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 dnf update -y
 
-# Save the S3 bucket name in an environment variable
-export PLUGINS_BUCKET_NAME="__PLUGINS_BUCKET_NAME__"
+# Save the S3 bucket name in an environment file
+echo 'PLUGINS_BUCKET_NAME=__PLUGINS_BUCKET_NAME__' >> /etc/environment
 
 # ----------------------------------
 # 2. Install Docker

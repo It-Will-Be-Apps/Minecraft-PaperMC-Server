@@ -13,6 +13,9 @@ infra/*.d.ts
 # Minecraft data
 data/
 
+# Minecraft plugins
+server/plugins/
+
 # Idle state data
 state/
 

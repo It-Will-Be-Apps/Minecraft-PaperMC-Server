@@ -114,7 +114,6 @@ export class InfraStack extends cdk.Stack {
       autoDeleteObjects: true
     });
 
-    pluginsBucket.grantRead(serverEc2InstanceRole, '*');
     pluginsBucket.grantPut(githubDeploymentRole, '*');
 
     // ---------------------------------------------------------------------
@@ -204,6 +203,8 @@ export class InfraStack extends cdk.Stack {
         })
       ]
     });
+
+    pluginsBucket.grantRead(serverEc2InstanceRole, '*');
 
     new ec2.CfnVolumeAttachment(this, APP_NAME + '-DataVolumeAttachment', {
       instanceId: serverEc2Instance.instanceId,

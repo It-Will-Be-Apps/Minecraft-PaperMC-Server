@@ -11,3 +11,4 @@ services:
       - .env
     volumes:
       - /opt/minecraft/data:/data
+      - /opt/minecraft/server/plugins:/plugins

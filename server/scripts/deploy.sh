@@ -2,6 +2,8 @@
 
 set -eu
 
+source /etc/environment
+
 SERVER_DIR="/opt/minecraft/server"
 PLUGINS_DIR="/opt/minecraft/server/plugins"
 COMPOSE_FILE="$SERVER_DIR/compose.yaml"
