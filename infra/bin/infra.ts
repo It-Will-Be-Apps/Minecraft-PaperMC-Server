@@ -8,6 +8,8 @@ new InfraStack(app, 'MinecraftPaperMCServer', {
   env: { account: '815354249022', region: 'us-east-1' },
 
   gitHubRepositoryUrl: "https://github.com/It-Will-Be-Apps/Minecraft-PaperMC-Server.git",
+  gitHubRepositoryOnwerId: "97565363",
+  gitHubRepositoryId: "1378895088",
   instanceType: app.node.tryGetContext('instanceType'),
   dataVolumeSizeGiB: app.node.tryGetContext('dataVolumeSizeGiB'),
   maxIdleDurationInMinutes: app.node.tryGetContext('maxIdleDurationInMinutes'),

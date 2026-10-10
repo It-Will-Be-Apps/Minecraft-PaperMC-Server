@@ -14,8 +14,10 @@ import * as path from 'path';
 
 export interface MinecraftServerStackProps extends cdk.StackProps {
 
-  // GitHub repository URL
+  // GitHub repository parameters
   gitHubRepositoryUrl: string;
+  gitHubRepositoryOnwerId: string;
+  gitHubRepositoryId: string;
 
   // EC2 instance type
   instanceType?: ec2.InstanceType;
@@ -43,7 +45,11 @@ export class InfraStack extends cdk.Stack {
     const APP_NAME = 'MinecraftPaperMCServer';
 
     const gitHubRepositoryUrl = props.gitHubRepositoryUrl;
-    const gitHubRepository = gitHubRepositoryUrl.replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    const gitHubRepositoryOnwerId = props.gitHubRepositoryOnwerId;
+    const gitHubRepositoryId = props.gitHubRepositoryId;
+    const gitHubRepositoryPath = gitHubRepositoryUrl.replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    const [gitHubRepositoryOwner, gitHubRepositoryName] = gitHubRepositoryPath.split('/');
+    const gitHubRepository = `${gitHubRepositoryOwner}@${gitHubRepositoryOnwerId}/${gitHubRepositoryName}@${gitHubRepositoryId}`;
     const instanceType = props.instanceType ?? ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.LARGE);
     const dataVolumeSizeGiB = props.dataVolumeSizeGiB ?? 8;
     const maxIdleDurationInMinutes = props.maxIdleDurationInMinutes ?? 10;
