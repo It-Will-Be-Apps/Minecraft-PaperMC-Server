@@ -2,5 +2,12 @@ name: Cathys-Adventure
 version: 1.0.0
 description: A Minecraft plugin that holds an adventure for Cathy.
 author: ItWillBeApps
-main: ca.itwillbeapps.minecraft.cathysadventure.CathysAdventurePlugin
+main: ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure
 api-version: 26.2
+permissions:
+  cathysadventure.admin:
+    default: op
+commands:
+  cathy:
+    description: Cathy's Adventure admin
+    permission: cathysadventure.admin

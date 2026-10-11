@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-    - 'plugins/'
+    - 'plugins/**'
     - '.github/workflows/deploy-plugins.yml'
     - '.github/scripts/'
 
