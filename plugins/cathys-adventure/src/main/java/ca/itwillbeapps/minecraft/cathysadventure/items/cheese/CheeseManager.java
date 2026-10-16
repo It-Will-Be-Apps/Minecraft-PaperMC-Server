@@ -5,7 +5,7 @@ import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 
-public final class CheeseManager {
+public class CheeseManager {
     private final CathysAdventure plugin;
 
     private CheeseItem cheeseItem;
@@ -14,6 +14,8 @@ public final class CheeseManager {
     private CheeseCampfireRecipe cheeseCampfireRecipe;
     private CheeseCookingListener cheeseCookingListener;
     private CheeseConsumptionListener cheeseConsumptionListener;
+    private CheeseRecipeDiscoveryListener cheeseRecipeDiscoveryListener;
+    private CheeseCraftingListener cheeseCraftingListener;
 
     public CheeseManager(CathysAdventure plugin) {
         this.plugin = plugin;
@@ -42,7 +44,22 @@ public final class CheeseManager {
         cheeseConsumptionListener = new CheeseConsumptionListener(cheeseItem);
         pluginManager.registerEvents(cheeseConsumptionListener, plugin);
 
-        plugin.getLogger().info("Cheese feature enabled.");
+        cheeseRecipeDiscoveryListener = new CheeseRecipeDiscoveryListener(plugin);
+        pluginManager.registerEvents(cheeseRecipeDiscoveryListener, plugin);
+
+        cheeseCraftingListener = new CheeseCraftingListener(cheeseItem);
+        pluginManager.registerEvents(cheeseCraftingListener, plugin);
+
+        plugin.getLogger().info("Cheese manager initialized");
+    }
+
+    /**
+     * Returns the cheese item definition.
+     *
+     * @return The cheese item definition
+     */
+    public CheeseItem getCheeseItem() {
+        return cheeseItem;
     }
 
     /**
@@ -55,16 +72,9 @@ public final class CheeseManager {
 
         HandlerList.unregisterAll(cheeseCookingListener);
         HandlerList.unregisterAll(cheeseConsumptionListener);
+        HandlerList.unregisterAll(cheeseRecipeDiscoveryListener);
+        HandlerList.unregisterAll(cheeseCraftingListener);
 
-        plugin.getLogger().info("Cheese feature disabled.");
-    }
-
-    /**
-     * Returns the cheese item definition.
-     *
-     * @return The cheese item definition
-     */
-    public CheeseItem getCheeseItem() {
-        return cheeseItem;
+        plugin.getLogger().info("Cheese manager disabled");
     }
 }

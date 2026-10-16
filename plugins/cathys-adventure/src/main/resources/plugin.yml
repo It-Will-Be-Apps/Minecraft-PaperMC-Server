@@ -7,7 +7,3 @@ api-version: 26.2
 permissions:
   cathysadventure.admin:
     default: op
-commands:
-  cathy:
-    description: Cathy's Adventure admin
-    permission: cathysadventure.admin

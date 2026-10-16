@@ -2,8 +2,10 @@
 
 set -eu
 
+cp build/libs/* /data/plugins/
+
 ./gradlew build --info
-./../../scripts/deploy.sh
+
 ./../../scripts/stop.sh
 yes | ./../../scripts/wipe.sh
 ./../../scripts/start.sh

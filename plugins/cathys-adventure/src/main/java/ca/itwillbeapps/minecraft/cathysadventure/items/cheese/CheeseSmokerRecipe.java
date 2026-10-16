@@ -1,24 +1,18 @@
 package ca.itwillbeapps.minecraft.cathysadventure.items.cheese;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.SmokingRecipe;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
+import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 
 public class CheeseSmokerRecipe {
-    private static final String RECIPE_ID = "CHEESE_SMOKER_RECIPE";
-    private static final int COOKING_TIME_TICKS = 100;
-    private static final float EXPERIENCE = 0.0f;
-
     private final CathysAdventure plugin;
     private final CheeseItem cheeseItem;
-    private final NamespacedKey recipeKey;
 
     public CheeseSmokerRecipe(CathysAdventure plugin, CheeseItem cheeseItem) {
         this.plugin = plugin;
         this.cheeseItem = cheeseItem;
-        this.recipeKey = new NamespacedKey(plugin, RECIPE_ID);
     }
 
     /**
@@ -26,22 +20,24 @@ public class CheeseSmokerRecipe {
      */
     public void register() {
         SmokingRecipe recipe = new SmokingRecipe(
-            recipeKey,
+            plugin.getKeys().cheeseSmokerRecipeIdKey,
             cheeseItem.create(),
             Material.MILK_BUCKET,
-            EXPERIENCE,
-            COOKING_TIME_TICKS
+            Settings.CHEESE_COOKING_EXPERIENCE,
+            Settings.CHEESE_SMOKER_COOKING_TIME_TICKS
         );
 
         plugin.getServer().addRecipe(recipe);
 
-        plugin.getLogger().info("Registered cheese smoker recipe.");
+        plugin.getLogger().info("Registered cheese smoker recipe");
     }
 
     /**
      * Unregisters the recipe.
      */
     public void unregister() {
-        plugin.getServer().removeRecipe(recipeKey);
+        plugin.getServer().removeRecipe(plugin.getKeys().cheeseSmokerRecipeIdKey);
+
+        plugin.getLogger().info("Unregistered cheese smoker recipe");
     }
 }

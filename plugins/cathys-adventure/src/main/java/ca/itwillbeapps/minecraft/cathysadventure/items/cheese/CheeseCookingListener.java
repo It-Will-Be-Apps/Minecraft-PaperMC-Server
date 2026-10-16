@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 
-public final class CheeseCookingListener implements Listener {
+public class CheeseCookingListener implements Listener {
     private final CathysAdventure plugin;
     private final CheeseItem cheeseItem;
 
@@ -18,6 +18,12 @@ public final class CheeseCookingListener implements Listener {
         this.cheeseItem = cheeseItem;
     }
 
+    /**
+     * Listens to cooking blocks to refund a bucket when a bucket of milk is
+     * cooked.
+     *
+     * @param event The block cooking event
+     */
     @EventHandler
     public void onBlockCook(BlockCookEvent event) {
         if (!cheeseItem.isCheese(event.getResult())) {
@@ -31,10 +37,7 @@ public final class CheeseCookingListener implements Listener {
                 return;
             }
 
-            block.getWorld().dropItemNaturally(
-                block.getLocation().add(0.0, 1.0, 0.0),
-                new ItemStack(Material.BUCKET)
-            );
+            block.getWorld().dropItemNaturally(block.getLocation().add(0.0, 1.0, 0.0), new ItemStack(Material.BUCKET));
         });
     }
 }

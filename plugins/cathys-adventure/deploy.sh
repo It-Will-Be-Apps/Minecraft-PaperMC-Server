@@ -2,7 +2,9 @@
 
 set -eu
 
+cp build/libs/* /data/plugins/
+
 ./gradlew build --info
-./../../scripts/deploy.sh
+
 ./../../scripts/restart.sh
 ./../../scripts/logs.sh
