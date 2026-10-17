@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -14,12 +15,14 @@ import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 public class EverestEnrageListener implements Listener {
     private final CathysAdventure plugin;
     private final PlayerManager playerManager;
+    private final EverestManager everestManager;
     private final EverestEntity everestEntity;
     private final EverestCombat everestCombat;
 
-    public EverestEnrageListener(CathysAdventure plugin, PlayerManager playerManager, EverestEntity everestEntity, EverestCombat everestCombat) {
+    public EverestEnrageListener(CathysAdventure plugin, PlayerManager playerManager, EverestManager everestManager, EverestEntity everestEntity, EverestCombat everestCombat) {
         this.plugin = plugin;
         this.playerManager = playerManager;
+        this.everestManager = everestManager;
         this.everestEntity = everestEntity;
         this.everestCombat = everestCombat;
     }
@@ -31,6 +34,12 @@ public class EverestEnrageListener implements Listener {
      */
     @EventHandler
     public void onCathyDeath(PlayerDeathEvent event) {
+        Wolf everest = everestManager.getEverest();
+
+        if (everest == null || everest.isDead() || !everest.isValid() || !everest.isTamed()) {
+            return;
+        }
+
         Player cathy = playerManager.getCathy();
 
         if (cathy == null || !event.getPlayer().getUniqueId().equals(cathy.getUniqueId())) {

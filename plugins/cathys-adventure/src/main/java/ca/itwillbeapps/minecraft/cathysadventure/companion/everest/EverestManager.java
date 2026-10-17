@@ -82,7 +82,7 @@ public class EverestManager {
         everestDamageListener = new EverestDamageListener(everestEntity);
         pluginManager.registerEvents(everestDamageListener, plugin);
 
-        everestEnrageListener = new EverestEnrageListener(plugin, playerManager, everestEntity, everestCombat);
+        everestEnrageListener = new EverestEnrageListener(plugin, playerManager, this, everestEntity, everestCombat);
         pluginManager.registerEvents(everestEnrageListener, plugin);
 
         everestFeedingListener = new EverestFeedingListener(playerManager, cheeseItem, summoningHornItem, everestEntity);
