@@ -1,4 +1,4 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -12,34 +12,24 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
-public class EverestEnrageListener implements Listener {
+public class GreatPyreneesEnrageListener implements Listener {
     private final CathysAdventure plugin;
     private final PlayerManager playerManager;
-    private final EverestManager everestManager;
-    private final EverestEntity everestEntity;
-    private final EverestCombat everestCombat;
+    private final GreatPyreneesCombat greatPyreneesCombat;
 
-    public EverestEnrageListener(CathysAdventure plugin, PlayerManager playerManager, EverestManager everestManager, EverestEntity everestEntity, EverestCombat everestCombat) {
+    public GreatPyreneesEnrageListener(CathysAdventure plugin, PlayerManager playerManager, GreatPyreneesCombat greatPyreneesCombat) {
         this.plugin = plugin;
         this.playerManager = playerManager;
-        this.everestManager = everestManager;
-        this.everestEntity = everestEntity;
-        this.everestCombat = everestCombat;
+        this.greatPyreneesCombat = greatPyreneesCombat;
     }
 
     /**
-     * Listens to player deaths to enrage Everest when Cathy dies.
+     * Listens to player deaths to enrage the great pyrenees when Cathy dies.
      *
      * @param event The player death event
      */
     @EventHandler
     public void onCathyDeath(PlayerDeathEvent event) {
-        Wolf everest = everestManager.getEverest();
-
-        if (everest == null || everest.isDead() || !everest.isValid() || !everest.isTamed()) {
-            return;
-        }
-
         Player cathy = playerManager.getCathy();
 
         if (cathy == null || !event.getPlayer().getUniqueId().equals(cathy.getUniqueId())) {
@@ -52,10 +42,10 @@ public class EverestEnrageListener implements Listener {
             return;
         }
 
-        if (everestEntity.isEverest(mob)) {
+        if (killer instanceof Wolf) {
             return;
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> everestCombat.startEnrage(mob));
+        Bukkit.getScheduler().runTask(plugin, () -> greatPyreneesCombat.startEnrage(mob));
     }
 }

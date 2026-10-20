@@ -1,11 +1,14 @@
 package ca.itwillbeapps.minecraft.cathysadventure;
 
 import org.bukkit.Material;
+import org.bukkit.block.Biome;
 
 public class Settings {
     // Location settings
     public static final int LOCATION_SEARCH_RADIUS = 8;
+    public static final int BIOME_SEARCH_RADIUS = 2000;
     public static final int LOCATION_HEIGHT_RANGE = 10;
+    public static final int MAX_LOCATION_HEIGHT_RANGE = 200;
 
     // Cheese settings
     public static final Material CHEESE_BASE_MATERIAL = Material.HONEYCOMB;
@@ -27,6 +30,9 @@ public class Settings {
     public static final double EVEREST_STALKING_SPEED = 1.0;
     public static final double EVEREST_FLEEING_SPEED = 1.2;
     public static final double EVEREST_CHEESE_SPEED = 1.5;
+
+    // Obélix settings
+    public static final Biome OBELIX_HOME_BIOME = Biome.SNOWY_PLAINS;
 
     // Great Pyrenees settings
     public static final int GP_TELEPORT_THRESHOLD = 64;

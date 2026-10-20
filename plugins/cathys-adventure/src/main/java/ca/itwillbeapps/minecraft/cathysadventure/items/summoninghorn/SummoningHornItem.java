@@ -31,6 +31,7 @@ public class SummoningHornItem {
             meta.displayName(Component.text("Summoning Horn", NamedTextColor.LIGHT_PURPLE));
             meta.lore(List.of(Component.text("Summons the most loyals of companions to your side.", NamedTextColor.GRAY)));
             meta.getPersistentDataContainer().set(plugin.getKeys().itemIdKey, PersistentDataType.STRING, ITEM_ID);
+            meta.getPersistentDataContainer().set(plugin.getKeys().soulboundItemKey, PersistentDataType.BOOLEAN, true);
         });
 
         return summoningHorn;

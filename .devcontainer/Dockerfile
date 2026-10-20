@@ -28,6 +28,9 @@ RUN apt-get -y install openjdk-25-jdk
 #Install zip, required for sdk
 RUN apt-get -y install zip
 
+# Install gnupg
+RUN apt-get install -y gnupg
+
 #Install Sdkman and Gradle
 RUN curl -s https://get.sdkman.io | bash && bash -c "source /root/.sdkman/bin/sdkman-init.sh && sdk install gradle"
 
@@ -36,9 +39,6 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | ba
 
 # Install Node.js
 RUN . ~/.bashrc && nvm install node
-
-# Install gpg
-RUN apt-get install -y gnupg
 
 # Install AWS CLI
 RUN curl -fsSL https://awscli.amazonaws.com/v2/install.sh | bash -s -- --system

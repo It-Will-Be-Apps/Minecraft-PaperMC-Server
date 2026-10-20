@@ -11,8 +11,9 @@ import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 public class PlayerManager {
     private final CathysAdventure plugin;
 
-    private PlayerListener playerListener;
     private Player cathy;
+    private PlayerListener playerListener;
+    private PlayerDeathListener playerDeathListener;
 
     public PlayerManager(CathysAdventure plugin) {
         this.plugin = plugin;
@@ -28,6 +29,9 @@ public class PlayerManager {
 
         playerListener = new PlayerListener(this);
         pluginManager.registerEvents(playerListener, plugin);
+
+        playerDeathListener = new PlayerDeathListener(plugin);
+        pluginManager.registerEvents(playerDeathListener, plugin);
 
         plugin.getLogger().info("Player manager initialized");
     }
@@ -85,6 +89,7 @@ public class PlayerManager {
      */
     public void cleanUp() {
         HandlerList.unregisterAll(playerListener);
+        HandlerList.unregisterAll(playerDeathListener);
 
         plugin.getLogger().info("Everest manager disabled");
     }

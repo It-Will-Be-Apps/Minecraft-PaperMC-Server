@@ -15,6 +15,9 @@ echo 'Libatomic:' $(dpkg-query -W -f='${Version}\n' libatomic1)
 # Show the installed version of Zip
 echo 'Zip:' $(zip -v)
 
+# Show the installed version of Gnupg
+echo 'Gnupg:' $(gpg --version)
+
 # Show the installed version of Sdkman
 source $HOME/.sdkman/bin/sdkman-init.sh && echo 'Sdkman:' $(sdk version)
 

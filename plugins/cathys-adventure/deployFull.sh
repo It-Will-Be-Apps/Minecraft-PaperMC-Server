@@ -2,9 +2,9 @@
 
 set -eu
 
-cp build/libs/* /data/plugins/
+./gradlew clean build --info
 
-./gradlew build --info
+cp build/libs/* /data/plugins/
 
 ./../../scripts/stop.sh
 yes | ./../../scripts/wipe.sh

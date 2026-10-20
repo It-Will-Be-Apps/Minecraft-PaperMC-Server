@@ -3,7 +3,7 @@ package ca.itwillbeapps.minecraft.cathysadventure;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import ca.itwillbeapps.minecraft.cathysadventure.companion.everest.EverestManager;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesManager;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseManager;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
@@ -12,7 +12,7 @@ public class CathysAdventure extends JavaPlugin implements Listener {
 
     private PlayerManager playerManager;
     private CheeseManager cheeseManager;
-    private EverestManager everestManager;
+    private GreatPyreneesManager greatPyreneesManager;
 
     @Override
     public void onEnable() {
@@ -26,8 +26,8 @@ public class CathysAdventure extends JavaPlugin implements Listener {
         cheeseManager = new CheeseManager(this);
         cheeseManager.initialize();
 
-        everestManager = new EverestManager(this, playerManager, cheeseManager.getCheeseItem());
-        everestManager.initialize();
+        greatPyreneesManager = new GreatPyreneesManager(this, playerManager, cheeseManager.getCheeseItem());
+        greatPyreneesManager.initialize();
 
         getLogger().info("Cathy's Adventure enabled");
     }
@@ -36,7 +36,7 @@ public class CathysAdventure extends JavaPlugin implements Listener {
     public void onDisable() {
         playerManager.cleanUp();
         cheeseManager.cleanUp();
-        everestManager.cleanUp();
+        greatPyreneesManager.cleanUp();
     }
 
     /**

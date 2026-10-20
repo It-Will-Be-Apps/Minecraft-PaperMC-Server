@@ -1,4 +1,4 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.EntityEffect;
 import org.bukkit.Material;
@@ -14,31 +14,38 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 import net.kyori.adventure.text.Component;
 
-public class EverestFeedingListener implements Listener {
+public class GreatPyreneesFeedingListener implements Listener {
     private final PlayerManager playerManager;
     private final CheeseItem cheeseItem;
     private final SummoningHornItem summoningHornItem;
     private final EverestEntity everestEntity;
+    private final ObelixEntity obelixEntity;
 
-    public EverestFeedingListener(PlayerManager playerManager, CheeseItem cheeseItem, SummoningHornItem summoningHornItem, EverestEntity everestEntity) {
+    public GreatPyreneesFeedingListener(PlayerManager playerManager, CheeseItem cheeseItem, SummoningHornItem summoningHornItem,
+            EverestEntity everestEntity, ObelixEntity obelixEntity) {
+
         this.playerManager = playerManager;
         this.cheeseItem = cheeseItem;
         this.summoningHornItem = summoningHornItem;
         this.everestEntity = everestEntity;
+        this.obelixEntity = obelixEntity;
     }
 
     /**
-     * Listens to interactions with Everest to handle taming and feeding.
+     * Listens to interactions with great pyrenees to handle taming and
+     * feeding.
      *
      * @param event The interaction event
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onEverestInteract(PlayerInteractEntityEvent event) {
+    public void onInteract(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
@@ -47,34 +54,29 @@ public class EverestFeedingListener implements Listener {
             return;
         }
 
-        if (!everestEntity.isEverest(wolf)) {
+        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf)) { // TODO Also check for puppies
             return;
         }
 
         Player player = event.getPlayer();
-        Player cathy = playerManager.getCathy();
-
         ItemStack item = player.getInventory().getItemInMainHand();
         boolean isCheese = cheeseItem.isCheese(item);
 
         if (!wolf.isTamed()) {
             event.setCancelled(true);
 
+            Player cathy = playerManager.getCathy();
+
             if (cathy == null || !cathy.getUniqueId().equals(player.getUniqueId()) || !isCheese) {
                 return;
             }
 
-            consumeItem(player, item);
+            if (everestEntity.isEverest(wolf)) {
+                tameEverest(wolf, cathy, item);
+            } else if (obelixEntity.isObelix(wolf)) {
+                tameObelix(wolf, cathy, item);
+            }
 
-            wolf.customName(Component.text("Everest"));
-            wolf.setTamed(true);
-            wolf.setOwner(cathy);
-            wolf.setSitting(false);
-            wolf.playEffect(EntityEffect.TAMING_SUCCEEDED);
-            wolf.getWorld().dropItemNaturally(wolf.getLocation(), summoningHornItem.create());
-            wolf.getWorld().dropItemNaturally(wolf.getLocation(), new ItemStack(Material.MAP));
-
-            player.sendMessage("Everest trusts you now!");
             return;
         }
 
@@ -94,6 +96,48 @@ public class EverestFeedingListener implements Listener {
                 }
             }
         }
+    }
+
+    /**
+     * Tames Everest.
+     *
+     * @param everest The Everest entity 
+     * @param cathy The Cathy player
+     * @param cheese The cheese item
+     */
+    private void tameEverest(Wolf everest, Player cathy, ItemStack cheese) {
+        consumeItem(cathy, cheese);
+
+        everest.customName(Component.text("Everest"));
+        everest.setTamed(true);
+        everest.setOwner(cathy);
+        everest.setSitting(false);
+        everest.playEffect(EntityEffect.TAMING_SUCCEEDED);
+        everest.getWorld().dropItemNaturally(everest.getLocation(), summoningHornItem.create());
+        everest.getWorld().dropItemNaturally(everest.getLocation(), new ItemStack(Material.MAP));
+
+        cathy.sendMessage("Everest trusts you now!");
+    }
+
+    /**
+     * Tames Obelix.
+     *
+     * @param obelix The Obelix entity 
+     * @param cathy The Cathy player
+     * @param cheese The cheese item
+     */
+    private void tameObelix(Wolf obelix, Player cathy, ItemStack cheese) {
+        consumeItem(cathy, cheese);
+
+        obelix.customName(Component.text("Obélix"));
+        obelix.setTamed(true);
+        obelix.setOwner(cathy);
+        obelix.setSitting(false);
+        obelix.playEffect(EntityEffect.TAMING_SUCCEEDED);
+        // obelix.getWorld().dropItemNaturally(obelix.getLocation(), summoningHornItem.create()); // TODO drop the metal bead
+        // obelix.getWorld().dropItemNaturally(obelix.getLocation(), new ItemStack(Material.MAP)); // TODO drop the map to Grogu
+
+        cathy.sendMessage("Obélix trusts you now!");
     }
 
     /**

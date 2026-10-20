@@ -10,25 +10,27 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.everest.EverestManager;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.everest.EverestMovement;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesManager;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
 public class SummoningHornInteractionListener implements Listener {
     private final PlayerManager playerManager;
-    private final EverestManager everestManager;
-    private final EverestMovement everestMovement;
+    private final GreatPyreneesManager greatPyreneesManager;
+    private final GreatPyreneesMovement greatPyreneesMovement;
     private final SummoningHornItem summoningHornItem;
 
-    public SummoningHornInteractionListener(PlayerManager playerManager, EverestManager everestManager, EverestMovement everestMovement, SummoningHornItem summoningHornItem) {
+    public SummoningHornInteractionListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, GreatPyreneesMovement greatPyreneesMovement,
+            SummoningHornItem summoningHornItem) {
+
         this.playerManager = playerManager;
-        this.everestManager = everestManager;
-        this.everestMovement = everestMovement;
+        this.greatPyreneesManager = greatPyreneesManager;
+        this.greatPyreneesMovement = greatPyreneesMovement;
         this.summoningHornItem = summoningHornItem;
     }
 
     /**
-     * Listens to item interaction events to summon Everest.
+     * Listens to item interaction events to summon the great pyrenees.
      *
      * @param event The interaction event
      */
@@ -45,11 +47,13 @@ public class SummoningHornInteractionListener implements Listener {
         }
 
         ItemStack item = event.getItem();
+
         if (!summoningHornItem.isSummoningHorn(item)) {
             return;
         }
 
         Player cathy = playerManager.getCathy();
+
         if (cathy == null || !event.getPlayer().getUniqueId().equals(cathy.getUniqueId())) {
             return;
         }
@@ -58,12 +62,11 @@ public class SummoningHornInteractionListener implements Listener {
             return;
         }
 
-        Wolf everest = everestManager.getEverest();
-        if (everest == null || everest.isDead() || !everest.isValid() || !everest.isTamed()) {
-            return;
+        for (Wolf wolf : greatPyreneesManager.getGreatPyrenees()) {
+            if (!wolf.isDead() && wolf.isValid() && wolf.isTamed()) {
+                wolf.setSitting(false);
+                greatPyreneesMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
+            }
         }
-
-        everest.setSitting(false);
-        everestMovement.teleportNearPlayer(everest, cathy, Settings.GP_SUMMON_DISTANCE, true);
     }
 }

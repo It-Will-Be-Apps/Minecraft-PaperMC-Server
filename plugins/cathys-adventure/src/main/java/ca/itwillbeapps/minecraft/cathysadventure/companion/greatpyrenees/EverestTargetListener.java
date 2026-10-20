@@ -1,9 +1,11 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
 
 public class EverestTargetListener implements Listener {
     private final EverestEntity everestEntity;

@@ -1,22 +1,26 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import io.papermc.paper.event.entity.EntityToggleSitEvent;
 
-public class EverestSittingListener implements Listener {
+public class GreatPyreneesSittingListener implements Listener {
     private final EverestEntity everestEntity;
+    private final ObelixEntity obelixEntity;
 
-    public EverestSittingListener(EverestEntity everestEntity) {
+    public GreatPyreneesSittingListener(EverestEntity everestEntity, ObelixEntity obelixEntity) {
         this.everestEntity = everestEntity;
+        this.obelixEntity = obelixEntity;
     }
 
     /**
-     * Listens to sitting events, to prevent Everest from auto-sitting when
-     * Cathy changes dimensions.
+     * Listens to sitting events, to prevent great pyrenees from auto-sitting
+     * when Cathy changes dimensions.
      *
      * @param event The sitting event
      */
@@ -26,7 +30,7 @@ public class EverestSittingListener implements Listener {
             return;
         }
 
-        if (!everestEntity.isEverest(wolf)) {
+        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf)) { // TODO puppies
             return;
         }
 

@@ -1,4 +1,4 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.persistence.PersistentDataType;

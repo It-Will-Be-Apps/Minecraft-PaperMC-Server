@@ -1,4 +1,4 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.everest;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -8,15 +8,19 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityBreedEvent;
 
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
-public class EverestBreedingListener implements Listener {
+public class GreatPyreneesBreedingListener implements Listener {
     private final PlayerManager playerManager;
     private final EverestEntity everestEntity;
+    private final ObelixEntity obelixEntity;
 
-    public EverestBreedingListener(PlayerManager playerManager, EverestEntity everestEntity) {
+    public GreatPyreneesBreedingListener(PlayerManager playerManager, EverestEntity everestEntity, ObelixEntity obelixEntity) {
         this.playerManager = playerManager;
         this.everestEntity = everestEntity;
+        this.obelixEntity = obelixEntity;
     }
 
     /**
@@ -25,7 +29,7 @@ public class EverestBreedingListener implements Listener {
      * @param event The breeding event
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onEverestBreed(EntityBreedEvent event) {
+    public void onBreed(EntityBreedEvent event) { // TODO update javadoc, make this work for all GPs
         if (event.getEntityType() != EntityType.WOLF) {
             return;
         }
@@ -41,7 +45,7 @@ public class EverestBreedingListener implements Listener {
                 return;
             }
 
-            event.setCancelled(true); // TODO eventuall here let her breed with Obélix
+            event.setCancelled(true); // TODO eventually here let her breed with Obélix
             return;
         }
 

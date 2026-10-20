@@ -27,6 +27,11 @@ echo 'Updating Zip...'
 apt-get -y install zip
 echo 'Zip updated!'
 
+# Update Gnupg
+echo 'Updating Gnupg...'
+apt-get -y install gnupg
+echo 'Gnupg updated!'
+
 # Update Sdkman
 echo 'Updating Sdkman...'
 source $HOME/.sdkman/bin/sdkman-init.sh
