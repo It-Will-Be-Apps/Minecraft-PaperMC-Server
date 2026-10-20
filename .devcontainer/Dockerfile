@@ -37,6 +37,9 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | ba
 # Install Node.js
 RUN . ~/.bashrc && nvm install node
 
+# Install gpg
+RUN apt-get install -y gnupg
+
 # Install AWS CLI
 RUN curl -fsSL https://awscli.amazonaws.com/v2/install.sh | bash -s -- --system
 
