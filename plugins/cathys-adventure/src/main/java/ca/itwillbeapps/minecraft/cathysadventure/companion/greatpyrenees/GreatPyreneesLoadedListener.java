@@ -2,6 +2,7 @@ package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
@@ -34,22 +35,17 @@ public class GreatPyreneesLoadedListener implements Listener {
             .map(entity -> (Wolf) entity)
             .toList();
 
-        greatPyreneesManager.getGreatPyreneesUuids().forEach(uuid -> {
             for (Wolf wolf : wolvesInLoadedChunk) {
-                if (!wolf.getUniqueId().equals(uuid)) {
-                    continue;
-                }
-
+                UUID uuid = wolf.getUniqueId();
                 if (uuid.equals(greatPyreneesManager.getEverestUuid())) {
                     everestEntity.markAsEverest(wolf);
                 } else if (uuid.equals(greatPyreneesManager.getObelixUuid())) {
                     obelixEntity.markAsObelix(wolf);
-                } else {
+                } else { // TODO check if the list of puppies UUIDs contains this one
                     // TODO Mark as a GP puppy
                 }
 
                 greatPyreneesManager.addGreatPyrenees(wolf);
             }
-        });
     }
 }

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -21,6 +20,7 @@ import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
+import ca.itwillbeapps.minecraft.cathysadventure.items.maps.ObelixMapItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornInteractionListener;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
@@ -32,6 +32,7 @@ public class GreatPyreneesManager {
     private final PlayerManager playerManager;
     private final CheeseItem cheeseItem;
 
+    private ObelixMapItem obelixMapItem;
     private SummoningHornItem summoningHornItem;
     private EverestEntity everestEntity;
     private ObelixEntity obelixEntity;
@@ -74,6 +75,8 @@ public class GreatPyreneesManager {
         obelixEntity = new ObelixEntity(plugin);
         ensureObelixExists();
 
+        obelixMapItem = new ObelixMapItem(plugin, this);
+
         summoningHornItem = new SummoningHornItem(plugin);
 
         greatPyreneesMovement = new GreatPyreneesMovement();
@@ -98,7 +101,7 @@ public class GreatPyreneesManager {
         greatPyreneesEnrageListener = new GreatPyreneesEnrageListener(plugin, playerManager, greatPyreneesCombat);
         pluginManager.registerEvents(greatPyreneesEnrageListener, plugin);
         
-        greatPyreneesFeedingListener = new GreatPyreneesFeedingListener(playerManager, cheeseItem, summoningHornItem, everestEntity, obelixEntity);
+        greatPyreneesFeedingListener = new GreatPyreneesFeedingListener(playerManager, cheeseItem, summoningHornItem, obelixMapItem, everestEntity, obelixEntity);
         pluginManager.registerEvents(greatPyreneesFeedingListener, plugin);
         
         greatPyreneesBreedingListener = new GreatPyreneesBreedingListener(playerManager, everestEntity, obelixEntity);
@@ -128,7 +131,7 @@ public class GreatPyreneesManager {
 
         if (savedUuid != null) {
             everestUuid = savedUuid;
-            Entity savedEntity = Bukkit.getEntity(savedUuid);
+            Entity savedEntity = plugin.getServer().getEntity(savedUuid);
 
             if (savedEntity == null) {
                 plugin.getLogger().info("Everest is not currently loaded, waiting for her saved entity to load");
@@ -174,12 +177,12 @@ public class GreatPyreneesManager {
      * Spawns Everest in the world and saves her UUID in the plugin data.
      */
     private void spawnEverest() {
-        if (Bukkit.getWorlds().isEmpty()) {
+        if (plugin.getServer().getWorlds().isEmpty()) {
             plugin.getLogger().severe("Cannot spawn Everest, no worlds are loaded");
             return;
         }
 
-        World world = Bukkit.getWorlds().get(0);
+        World world = plugin.getServer().getWorlds().get(0);
         Location location = LocationFinder.nearLocation(world.getSpawnLocation());
 
         if (location == null) {
@@ -229,7 +232,7 @@ public class GreatPyreneesManager {
 
         if (savedUuid != null) {
             obelixUuid = savedUuid;
-            Entity savedEntity = Bukkit.getEntity(savedUuid);
+            Entity savedEntity = plugin.getServer().getEntity(savedUuid);
 
             if (savedEntity == null) {
                 plugin.getLogger().info("Obélix is not currently loaded, waiting for his saved entity to load");
@@ -275,16 +278,15 @@ public class GreatPyreneesManager {
      * Spawns Obélix in the world and saves his UUID in the plugin data.
      */
     private void spawnObelix() {
-        if (Bukkit.getWorlds().isEmpty()) {
+        if (plugin.getServer().getWorlds().isEmpty()) {
             plugin.getLogger().severe("Cannot spawn Obélix, no worlds are loaded");
             return;
         }
 
-        World world = Bukkit.getWorlds().get(0);
+        World world = plugin.getServer().getWorlds().get(0);
         Location location = LocationFinder.inBiome(world.getSpawnLocation(), Biome.SNOWY_PLAINS);
 
         if (location == null) {
-            Bukkit.getLogger().info("Obelix location null");
             location = world.getSpawnLocation().clone().add(0.5, 1, 0.5);
         }
 
@@ -331,15 +333,6 @@ public class GreatPyreneesManager {
      */
     public List<Wolf> getGreatPyrenees() {
         return greatPyrenees.values().stream().toList();
-    }
-
-    /**
-     * Returns the UUIDs of all great pyrenees.
-     *
-     * @return A list of all great pyrenees UUIDs
-     */
-    public List<UUID> getGreatPyreneesUuids() {
-        return greatPyrenees.keySet().stream().toList();
     }
 
     /**

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
@@ -33,7 +32,7 @@ public class GreatPyreneesChunkLoader {
         }
         
         chunksWithTickets = new ArrayList<>();
-        greatPyreneesChunkLoaderTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1l, 5l);
+        greatPyreneesChunkLoaderTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1l, 5l);
 
         plugin.getLogger().info("Great Pyrenees chunk loader loop started");
     }

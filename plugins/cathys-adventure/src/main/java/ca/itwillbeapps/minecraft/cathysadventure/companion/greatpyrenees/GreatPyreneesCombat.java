@@ -2,7 +2,6 @@ package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
@@ -41,7 +40,7 @@ public class GreatPyreneesCombat {
 
         greatPyreneesAreEnraged = false;
 
-        greatPyreneesCombatTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1l, 5l);
+        greatPyreneesCombatTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1l, 5l);
 
         plugin.getLogger().info("Great Pyrenees combat loop started");
     }
@@ -121,7 +120,7 @@ public class GreatPyreneesCombat {
      * Has the given great pyrenees attack the enrage target.
      */
     private void attackEnrageTarget() {
-        Entity entity = Bukkit.getEntity(greatPyreneesEnrageTargetUuid);
+        Entity entity = plugin.getServer().getEntity(greatPyreneesEnrageTargetUuid);
 
         if (entity == null || entity.isDead() || !entity.isValid() || !(entity instanceof LivingEntity target)) {
             stopEnrage();
@@ -158,7 +157,7 @@ public class GreatPyreneesCombat {
             greatPyreneesEnrageTimeoutTask.cancel();
         }
 
-        greatPyreneesEnrageTimeoutTask = Bukkit.getScheduler().runTaskLater(plugin, this::stopEnrage, Settings.GP_MAX_ENRAGE_DURATION);
+        greatPyreneesEnrageTimeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, this::stopEnrage, Settings.GP_MAX_ENRAGE_DURATION);
     }
 
     /**

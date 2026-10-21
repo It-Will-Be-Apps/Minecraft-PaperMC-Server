@@ -1,6 +1,5 @@
 package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -46,6 +45,6 @@ public class GreatPyreneesEnrageListener implements Listener {
             return;
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> greatPyreneesCombat.startEnrage(mob));
+        plugin.getServer().getScheduler().runTask(plugin, () -> greatPyreneesCombat.startEnrage(mob));
     }
 }

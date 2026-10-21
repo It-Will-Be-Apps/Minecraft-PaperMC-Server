@@ -3,9 +3,12 @@ package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import java.util.Comparator;
 
-import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wolf;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
@@ -48,7 +51,7 @@ public class GreatPyreneesBehavior {
             return;
         }
 
-        greatPyreneesBehaviorTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1l, 10l);
+        greatPyreneesBehaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1l, 10l);
 
         plugin.getLogger().info("Great Pyrenees behavior loop started");
     }
@@ -137,7 +140,17 @@ public class GreatPyreneesBehavior {
      * @param obelix The Obelix entity
      */
     private void untamedObelixTick(Wolf obelix) {
-        // TODO stay within his biome
+        Location location = obelix.getLocation();
+        Biome currentBiome = location.getBlock().getBiome();
+            
+        if (currentBiome == Settings.OBELIX_HOME_BIOME) {
+            return;
+        }
+
+        World world = plugin.getServer().getWorlds().get(0);
+        int[] homeCoordinates = obelix.getPersistentDataContainer().get(plugin.getKeys().obelixHomeLocationKey, PersistentDataType.INTEGER_ARRAY);
+        Location homeLocation = new Location(world, homeCoordinates[0], homeCoordinates[1], homeCoordinates[2]);
+        greatPyreneesMovement.moveToDestination(obelix, homeLocation);
     }
 
     /**

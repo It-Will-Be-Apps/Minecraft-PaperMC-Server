@@ -1,7 +1,6 @@
 
 package ca.itwillbeapps.minecraft.cathysadventure.items.cheese;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.Player;
@@ -63,7 +62,7 @@ public class CheeseRecipeDiscoveryListener implements Listener {
             return;
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (player.isOnline() && player.getInventory().contains(Material.MILK_BUCKET)) {
                 discoverRecipes(player);
             }

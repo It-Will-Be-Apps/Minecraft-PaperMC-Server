@@ -63,6 +63,16 @@ public class GreatPyreneesMovement {
     }
 
     /**
+     * Has a great pyrenees move to the given destination.
+     *
+     * @param wolf The great pyrenees entity
+     * @param destination The destination to move to
+     */
+    public void moveToDestination(Wolf wolf, Location destination) {
+        wolf.getPathfinder().moveTo(destination);
+    }
+
+    /**
      * Teleports a great pyrenees to a safe spot near the given player.
      *
      * @param wolf The great pyrenees entity
