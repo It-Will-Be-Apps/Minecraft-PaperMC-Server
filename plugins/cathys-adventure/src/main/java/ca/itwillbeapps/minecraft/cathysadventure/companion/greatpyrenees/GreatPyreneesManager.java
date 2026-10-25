@@ -16,10 +16,14 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
+import ca.itwillbeapps.minecraft.cathysadventure.Settings;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
+import ca.itwillbeapps.minecraft.cathysadventure.items.maps.GroguMapItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.maps.ObelixMapItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornInteractionListener;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornItem;
@@ -30,13 +34,15 @@ import net.kyori.adventure.text.Component;
 public class GreatPyreneesManager {
     private final CathysAdventure plugin;
     private final PlayerManager playerManager;
+    private final GroguManager groguManager;
     private final CheeseItem cheeseItem;
+    private final ObelixMapItem obelixMapItem;
+    private final GroguMapItem groguMapItem;
+    private final CompanionMovement companionMovement;
 
-    private ObelixMapItem obelixMapItem;
     private SummoningHornItem summoningHornItem;
     private EverestEntity everestEntity;
     private ObelixEntity obelixEntity;
-    private GreatPyreneesMovement greatPyreneesMovement;
     private GreatPyreneesBehavior greatPyreneesBehavior;
     private GreatPyreneesCombat greatPyreneesCombat;
     private GreatPyreneesChunkLoader greatPyreneesChunkLoader;
@@ -56,15 +62,21 @@ public class GreatPyreneesManager {
 
     private Map<UUID, Wolf> greatPyrenees;
 
-    public GreatPyreneesManager(CathysAdventure plugin, PlayerManager playerManager, CheeseItem cheeseItem) {
+    public GreatPyreneesManager(CathysAdventure plugin, PlayerManager playerManager, GroguManager groguManager, CheeseItem cheeseItem,
+            ObelixMapItem obelixMapItem, GroguMapItem groguMapItem, CompanionMovement companionMovement) {
+
         this.plugin = plugin;
         this.playerManager = playerManager;
+        this.groguManager = groguManager;
         this.cheeseItem = cheeseItem;
+        this.obelixMapItem = obelixMapItem;
+        this.groguMapItem = groguMapItem;
+        this.companionMovement = companionMovement;
     }
 
     /**
-     * Initializes the everest entity, behaviors and listeners and spawns
-     * Everest in a proper location if required.
+     * Initializes the great pyrenees entities, behaviors and listeners and spawns
+     * Everest and Obélix in a proper location if required.
      */
     public void initialize() {
         greatPyrenees = new HashMap<>();
@@ -75,16 +87,12 @@ public class GreatPyreneesManager {
         obelixEntity = new ObelixEntity(plugin);
         ensureObelixExists();
 
-        obelixMapItem = new ObelixMapItem(plugin, this);
-
         summoningHornItem = new SummoningHornItem(plugin);
-
-        greatPyreneesMovement = new GreatPyreneesMovement();
 
         greatPyreneesCombat = new GreatPyreneesCombat(plugin, this);
         greatPyreneesCombat.start();
 
-        greatPyreneesBehavior = new GreatPyreneesBehavior(plugin, playerManager, cheeseItem, everestEntity, obelixEntity, this, greatPyreneesMovement, greatPyreneesCombat);
+        greatPyreneesBehavior = new GreatPyreneesBehavior(plugin, playerManager, cheeseItem, everestEntity, obelixEntity, this, greatPyreneesCombat, companionMovement);
         greatPyreneesBehavior.start();
 
         greatPyreneesChunkLoader = new GreatPyreneesChunkLoader(plugin, this);
@@ -101,7 +109,8 @@ public class GreatPyreneesManager {
         greatPyreneesEnrageListener = new GreatPyreneesEnrageListener(plugin, playerManager, greatPyreneesCombat);
         pluginManager.registerEvents(greatPyreneesEnrageListener, plugin);
         
-        greatPyreneesFeedingListener = new GreatPyreneesFeedingListener(playerManager, cheeseItem, summoningHornItem, obelixMapItem, everestEntity, obelixEntity);
+        greatPyreneesFeedingListener = new GreatPyreneesFeedingListener(playerManager, this, groguManager, cheeseItem, summoningHornItem, obelixMapItem, groguMapItem,
+            groguManager.getMetalBeadItem(), everestEntity, obelixEntity);
         pluginManager.registerEvents(greatPyreneesFeedingListener, plugin);
         
         greatPyreneesBreedingListener = new GreatPyreneesBreedingListener(playerManager, everestEntity, obelixEntity);
@@ -116,7 +125,7 @@ public class GreatPyreneesManager {
         everestTargetListener = new EverestTargetListener(everestEntity);
         pluginManager.registerEvents(everestTargetListener, plugin);
 
-        summoningHornInteractionListener = new SummoningHornInteractionListener(playerManager, this, greatPyreneesMovement, summoningHornItem);
+        summoningHornInteractionListener = new SummoningHornInteractionListener(playerManager, this, companionMovement, groguManager, summoningHornItem);
         pluginManager.registerEvents(summoningHornInteractionListener, plugin);
 
         plugin.getLogger().info("Everest manager initialized");
@@ -183,7 +192,7 @@ public class GreatPyreneesManager {
         }
 
         World world = plugin.getServer().getWorlds().get(0);
-        Location location = LocationFinder.nearLocation(world.getSpawnLocation());
+        Location location = LocationFinder.nearLocation(world.getSpawnLocation(), 0, Settings.LOCATION_HEIGHT_RANGE);
 
         if (location == null) {
             location = world.getSpawnLocation().clone().add(0.5, 1, 0.5);
@@ -303,7 +312,7 @@ public class GreatPyreneesManager {
         saveObelixUuid(obelix.getUniqueId());
         greatPyrenees.put(obelixUuid, obelix);
 
-        plugin.getLogger().info("Spawned Obelix at location: " + location.toString());
+        plugin.getLogger().info("Spawned Obélix at location: " + location.toString());
     }
 
     /**
@@ -347,7 +356,7 @@ public class GreatPyreneesManager {
     }
 
     /**
-     * Cleans up the Everest behaviors and listeners.
+     * Cleans up the great pyrenees behaviors and listeners.
      */
     public void cleanUp() {
         greatPyreneesCombat.stop();

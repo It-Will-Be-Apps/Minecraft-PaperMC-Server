@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build:
-    name: Build the plugins and deployt them to AWS
+    name: Build the plugins and deploy them to AWS
     runs-on: ubuntu-latest
 
     steps: 

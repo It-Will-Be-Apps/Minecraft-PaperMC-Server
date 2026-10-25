@@ -1,7 +1,6 @@
 package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.EntityEffect;
-import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
@@ -16,24 +15,39 @@ import org.bukkit.inventory.ItemStack;
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
+import ca.itwillbeapps.minecraft.cathysadventure.items.maps.GroguMapItem;
+import ca.itwillbeapps.minecraft.cathysadventure.items.maps.ObelixMapItem;
+import ca.itwillbeapps.minecraft.cathysadventure.items.metealbead.MetalBeadItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 import net.kyori.adventure.text.Component;
 
 public class GreatPyreneesFeedingListener implements Listener {
     private final PlayerManager playerManager;
+    private final GreatPyreneesManager greatPyreneesManager;
+    private final GroguManager groguManager;
     private final CheeseItem cheeseItem;
     private final SummoningHornItem summoningHornItem;
+    private final ObelixMapItem obelixMapItem;
+    private final GroguMapItem groguMapItem;
+    private final MetalBeadItem metalBeadItem;
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
 
-    public GreatPyreneesFeedingListener(PlayerManager playerManager, CheeseItem cheeseItem, SummoningHornItem summoningHornItem,
+    public GreatPyreneesFeedingListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, GroguManager groguManager,
+            CheeseItem cheeseItem, SummoningHornItem summoningHornItem, ObelixMapItem obelixMapItem, GroguMapItem groguMapItem, MetalBeadItem metalBeadItem,
             EverestEntity everestEntity, ObelixEntity obelixEntity) {
 
         this.playerManager = playerManager;
+        this.greatPyreneesManager = greatPyreneesManager;
+        this.groguManager = groguManager;
         this.cheeseItem = cheeseItem;
         this.summoningHornItem = summoningHornItem;
+        this.obelixMapItem = obelixMapItem;
+        this.groguMapItem = groguMapItem;
+        this.metalBeadItem = metalBeadItem;
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
     }
@@ -114,7 +128,7 @@ public class GreatPyreneesFeedingListener implements Listener {
         everest.setSitting(false);
         everest.playEffect(EntityEffect.TAMING_SUCCEEDED);
         everest.getWorld().dropItemNaturally(everest.getLocation(), summoningHornItem.create());
-        everest.getWorld().dropItemNaturally(everest.getLocation(), new ItemStack(Material.MAP));
+        everest.getWorld().dropItemNaturally(everest.getLocation(), obelixMapItem.create(greatPyreneesManager.getObelixUuid()));
 
         cathy.sendMessage("Everest trusts you now!");
     }
@@ -134,8 +148,8 @@ public class GreatPyreneesFeedingListener implements Listener {
         obelix.setOwner(cathy);
         obelix.setSitting(false);
         obelix.playEffect(EntityEffect.TAMING_SUCCEEDED);
-        // obelix.getWorld().dropItemNaturally(obelix.getLocation(), summoningHornItem.create()); // TODO drop the metal bead
-        // obelix.getWorld().dropItemNaturally(obelix.getLocation(), new ItemStack(Material.MAP)); // TODO drop the map to Grogu
+        obelix.getWorld().dropItemNaturally(obelix.getLocation(), metalBeadItem.create());
+        obelix.getWorld().dropItemNaturally(obelix.getLocation(), groguMapItem.create(groguManager.getGroguUuid()));
 
         cathy.sendMessage("Obélix trusts you now!");
     }

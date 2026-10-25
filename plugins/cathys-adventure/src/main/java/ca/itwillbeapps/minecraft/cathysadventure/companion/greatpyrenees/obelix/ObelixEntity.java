@@ -15,19 +15,19 @@ public class ObelixEntity {
     }
 
     /**
-     * Marks an entity as Obelix.
+     * Marks an entity as Obélix.
      *
-     * @param entity The entity to mark as Obelix
+     * @param entity The entity to mark as Obélix
      */
     public void markAsObelix(Entity entity) {
         entity.getPersistentDataContainer().set(plugin.getKeys().entityIdKey, PersistentDataType.STRING, OBELIX_ENTITY_ID);
     }
 
     /**
-     * Verifies if the given entity is Obelix.
+     * Verifies if the given entity is Obélix.
      *
      * @param entity The entity to verify
-     * @return Whether the entity is Obelix
+     * @return Whether the entity is Obélix
      */
     public boolean isObelix(Entity entity) {
         if (entity == null) {

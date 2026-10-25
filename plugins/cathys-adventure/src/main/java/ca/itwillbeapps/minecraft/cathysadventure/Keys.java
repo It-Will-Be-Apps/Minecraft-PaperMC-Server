@@ -13,6 +13,7 @@ public class Keys {
     private static final String DAMAGE_BONUS_ACTIVE_KEY = "DAMAGE_BONUS_ACTIVE";
     private static final String DAMAGE_MODIFIER_KEY = "DAMAGE_MODIFIER_KEY";
     private static final String OBELIX_HOME_LOCATION_KEY = "OBELIX_HOME_LOCATION_KEY";
+    private static final String GROGU_JAIL_LOCATION_KEY = "GROGU_JAIL_LOCATION_KEY";
 
     public final NamespacedKey itemIdKey;
     public final NamespacedKey soulboundItemKey;
@@ -23,6 +24,7 @@ public class Keys {
     public final NamespacedKey damageBonusActiveKey;
     public final NamespacedKey damageModifierKey;
     public final NamespacedKey obelixHomeLocationKey;
+    public final NamespacedKey groguJailLocationKey;
 
     public Keys(Plugin plugin) {
         itemIdKey = new NamespacedKey(plugin, ITEM_ID_KEY);
@@ -34,5 +36,6 @@ public class Keys {
         damageBonusActiveKey = new NamespacedKey(plugin, DAMAGE_BONUS_ACTIVE_KEY);
         damageModifierKey = new NamespacedKey(plugin, DAMAGE_MODIFIER_KEY);
         obelixHomeLocationKey = new NamespacedKey(plugin, OBELIX_HOME_LOCATION_KEY);
+        groguJailLocationKey = new NamespacedKey(plugin, GROGU_JAIL_LOCATION_KEY);
     }
 }

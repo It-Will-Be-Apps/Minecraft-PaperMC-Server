@@ -35,17 +35,18 @@ public class GreatPyreneesLoadedListener implements Listener {
             .map(entity -> (Wolf) entity)
             .toList();
 
-            for (Wolf wolf : wolvesInLoadedChunk) {
-                UUID uuid = wolf.getUniqueId();
-                if (uuid.equals(greatPyreneesManager.getEverestUuid())) {
-                    everestEntity.markAsEverest(wolf);
-                } else if (uuid.equals(greatPyreneesManager.getObelixUuid())) {
-                    obelixEntity.markAsObelix(wolf);
-                } else { // TODO check if the list of puppies UUIDs contains this one
-                    // TODO Mark as a GP puppy
-                }
+        for (Wolf wolf : wolvesInLoadedChunk) {
+            UUID uuid = wolf.getUniqueId();
 
-                greatPyreneesManager.addGreatPyrenees(wolf);
+            if (uuid.equals(greatPyreneesManager.getEverestUuid())) {
+                everestEntity.markAsEverest(wolf);
+            } else if (uuid.equals(greatPyreneesManager.getObelixUuid())) {
+                obelixEntity.markAsObelix(wolf);
+            } else { // TODO check if the list of puppies UUIDs contains this one
+                // TODO Mark as a GP puppy
             }
+
+            greatPyreneesManager.addGreatPyrenees(wolf);
+        }
     }
 }

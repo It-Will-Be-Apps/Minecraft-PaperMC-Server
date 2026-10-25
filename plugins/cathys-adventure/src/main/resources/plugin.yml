@@ -3,7 +3,7 @@ version: 1.0.0
 description: A Minecraft plugin that holds an adventure for Cathy.
 author: ItWillBeApps
 main: ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure
-api-version: 26.2
+api-version: 26.3
 permissions:
   cathysadventure.admin:
     default: op

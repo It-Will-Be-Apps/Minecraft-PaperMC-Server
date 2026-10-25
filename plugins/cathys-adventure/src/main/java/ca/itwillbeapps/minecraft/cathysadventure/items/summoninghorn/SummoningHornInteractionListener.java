@@ -1,5 +1,6 @@
 package ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn;
 
+import org.bukkit.entity.Allay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
@@ -10,22 +11,25 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesManager;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesMovement;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
 public class SummoningHornInteractionListener implements Listener {
     private final PlayerManager playerManager;
     private final GreatPyreneesManager greatPyreneesManager;
-    private final GreatPyreneesMovement greatPyreneesMovement;
+    private final CompanionMovement companionMovement;
+    private final GroguManager groguManager;
     private final SummoningHornItem summoningHornItem;
 
-    public SummoningHornInteractionListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, GreatPyreneesMovement greatPyreneesMovement,
-            SummoningHornItem summoningHornItem) {
+    public SummoningHornInteractionListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, CompanionMovement companionMovement,
+            GroguManager groguManager, SummoningHornItem summoningHornItem) {
 
         this.playerManager = playerManager;
         this.greatPyreneesManager = greatPyreneesManager;
-        this.greatPyreneesMovement = greatPyreneesMovement;
+        this.companionMovement = companionMovement;
+        this.groguManager = groguManager;
         this.summoningHornItem = summoningHornItem;
     }
 
@@ -65,8 +69,13 @@ public class SummoningHornInteractionListener implements Listener {
         for (Wolf wolf : greatPyreneesManager.getGreatPyrenees()) {
             if (!wolf.isDead() && wolf.isValid() && wolf.isTamed()) {
                 wolf.setSitting(false);
-                greatPyreneesMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
+                companionMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
             }
+        }
+
+        Allay grogu = groguManager.getGrogu();
+        if (grogu != null && !grogu.isDead() && grogu.isValid()) {
+            companionMovement.teleportNearPlayer(grogu, cathy, Settings.GROGU_SUMMON_DISTANCE, true);
         }
     }
 }

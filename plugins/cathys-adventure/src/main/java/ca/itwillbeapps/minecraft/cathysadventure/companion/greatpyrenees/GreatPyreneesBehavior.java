@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
@@ -25,13 +26,13 @@ public class GreatPyreneesBehavior {
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
     private final GreatPyreneesManager greatPyreneesManager;
-    private final GreatPyreneesMovement greatPyreneesMovement;
     private final GreatPyreneesCombat greatPyreneesCombat;
+    private final CompanionMovement companionMovement;
 
     private BukkitTask greatPyreneesBehaviorTask;
 
     public GreatPyreneesBehavior(CathysAdventure plugin, PlayerManager playerManager, CheeseItem cheeseItem, EverestEntity everestEntity, ObelixEntity obelixEntity,
-            GreatPyreneesManager greatPyreneesManager, GreatPyreneesMovement greatPyreneesMovement, GreatPyreneesCombat greatPyreneesCombat) {
+            GreatPyreneesManager greatPyreneesManager, GreatPyreneesCombat greatPyreneesCombat, CompanionMovement companionMovement) {
 
         this.plugin = plugin;
         this.playerManager = playerManager;
@@ -39,8 +40,8 @@ public class GreatPyreneesBehavior {
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
         this.greatPyreneesManager = greatPyreneesManager;
-        this.greatPyreneesMovement = greatPyreneesMovement;
         this.greatPyreneesCombat = greatPyreneesCombat;
+        this.companionMovement = companionMovement;
     }
 
     /**
@@ -102,13 +103,13 @@ public class GreatPyreneesBehavior {
         }
 
         if (!wolf.getWorld().getUID().equals(cathy.getWorld().getUID())) {
-            greatPyreneesMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
+            companionMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
         }
 
         double squaredDistanceFromCathy = wolf.getLocation().distanceSquared(cathy.getLocation());
 
         if (squaredDistanceFromCathy > Settings.GP_TELEPORT_THRESHOLD * Settings.GP_TELEPORT_THRESHOLD) {
-            greatPyreneesMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
+            companionMovement.teleportNearPlayer(wolf, cathy, Settings.GP_SUMMON_DISTANCE, true);
         }
     }
 
@@ -127,7 +128,7 @@ public class GreatPyreneesBehavior {
         Player player = findNearestThreateningPlayer(everest);
 
         if (player != null) {
-            greatPyreneesMovement.moveDistanceFromPlayer(everest, player, Settings.EVEREST_SAFE_DISTANCE, Settings.EVEREST_FLEEING_SPEED);
+            companionMovement.moveDistanceFromPlayer(everest, player, Settings.EVEREST_SAFE_DISTANCE, Settings.EVEREST_FLEEING_SPEED);
             return;
         }
 
@@ -150,7 +151,7 @@ public class GreatPyreneesBehavior {
         World world = plugin.getServer().getWorlds().get(0);
         int[] homeCoordinates = obelix.getPersistentDataContainer().get(plugin.getKeys().obelixHomeLocationKey, PersistentDataType.INTEGER_ARRAY);
         Location homeLocation = new Location(world, homeCoordinates[0], homeCoordinates[1], homeCoordinates[2]);
-        greatPyreneesMovement.moveToDestination(obelix, homeLocation);
+        companionMovement.moveToDestination(obelix, homeLocation);
     }
 
     /**
@@ -178,18 +179,18 @@ public class GreatPyreneesBehavior {
      */
     private void approachCathy(Wolf everest, Player cathy, boolean holdingCheese) {
         if (!everest.getWorld().getUID().equals(cathy.getWorld().getUID())) {
-            greatPyreneesMovement.teleportNearPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, true);
+            companionMovement.teleportNearPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, true);
             return;
         }
 
         double squaredDistanceFromCathy = everest.getLocation().distanceSquared(cathy.getLocation());
 
         if (squaredDistanceFromCathy > Settings.GP_TELEPORT_THRESHOLD * Settings.GP_TELEPORT_THRESHOLD) {
-            greatPyreneesMovement.teleportNearPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, false);
+            companionMovement.teleportNearPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, false);
         } else if (holdingCheese) {
-            greatPyreneesMovement.moveDistanceFromPlayer(everest, cathy, Settings.GP_SUMMON_DISTANCE, Settings.EVEREST_CHEESE_SPEED);
+            companionMovement.moveDistanceFromPlayer(everest, cathy, Settings.GP_SUMMON_DISTANCE, Settings.EVEREST_CHEESE_SPEED);
         } else if (squaredDistanceFromCathy > Settings.EVEREST_APPROACH_THRESHOLD * Settings.EVEREST_APPROACH_THRESHOLD) {
-            greatPyreneesMovement.moveDistanceFromPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, Settings.EVEREST_STALKING_SPEED);
+            companionMovement.moveDistanceFromPlayer(everest, cathy, Settings.EVEREST_SAFE_DISTANCE, Settings.EVEREST_STALKING_SPEED);
         }
     }
 

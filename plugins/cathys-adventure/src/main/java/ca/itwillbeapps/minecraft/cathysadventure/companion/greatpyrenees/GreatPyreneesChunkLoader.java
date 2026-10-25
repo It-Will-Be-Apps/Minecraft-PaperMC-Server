@@ -24,7 +24,7 @@ public class GreatPyreneesChunkLoader {
     }
 
     /**
-     * Starts the great pyrenees' behavior loop.
+     * Starts the great pyrenees' chunk loader loop.
      */
     public void start() {
         if (greatPyreneesChunkLoaderTask != null && !greatPyreneesChunkLoaderTask.isCancelled()) {
@@ -81,6 +81,9 @@ public class GreatPyreneesChunkLoader {
             greatPyreneesChunkLoaderTask.cancel();
             greatPyreneesChunkLoaderTask = null;
         }
+
+        chunksWithTickets.forEach(chunk -> chunk.removePluginChunkTicket(plugin));
+        chunksWithTickets.clear();
 
         plugin.getLogger().info("Great Pyrenees chunk loader loop stopped");
     }

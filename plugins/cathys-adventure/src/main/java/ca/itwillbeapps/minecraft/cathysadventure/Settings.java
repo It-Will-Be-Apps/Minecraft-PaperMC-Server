@@ -23,6 +23,12 @@ public class Settings {
     // Summoning horn settings
     public static final Material SUMMONING_HORN_BASE_MATERIAL = Material.GOAT_HORN;
 
+    // Fetch ball settings
+    public static final Material FETCH_BALL_BASE_MATERIAL = Material.SNOWBALL;
+
+    // Metal bead settings
+    public static final Material METAL_BEAD_BASE_MATERIAL = Material.SNOWBALL;
+
     // Everest settings
     public static final int EVEREST_THREAT_RADIUS = 16;
     public static final int EVEREST_SAFE_DISTANCE = 24;
@@ -40,4 +46,7 @@ public class Settings {
     public static final long GP_MAX_ENRAGE_DURATION = 30l * 20l;
     public static final double GP_MINIMUM_HEALTH = 1.0;
     public static final double GP_CHEESE_HEAL_AMOUNT = 4.0;
+
+    // Grogu settings
+    public static final int GROGU_SUMMON_DISTANCE = 5;
 }
