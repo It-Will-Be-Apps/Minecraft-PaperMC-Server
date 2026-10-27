@@ -1,5 +1,7 @@
 package ca.itwillbeapps.minecraft.cathysadventure.util;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -7,9 +9,12 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Mob;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.util.BiomeSearchResult;
 import org.bukkit.util.StructureSearchResult;
+
+import com.destroystokyo.paper.entity.Pathfinder;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 
@@ -20,7 +25,7 @@ public class LocationFinder {
      * location, if any.
      *
      * @param world The world in which to find a location
-     * @param location The location near which to spawn
+     * @param location The location near which to find a location
      * @param minRadius The minimum radius from the location to start searching
      * @param verticalRadius The vertical range to search above and below the
      *        given location
@@ -314,5 +319,47 @@ public class LocationFinder {
         }
 
         return cobblestoneCount >= minCobblestoneBlocks;
+    }
+
+    /**
+     * Finds a random pathfindable location for the given companion around the
+     * given location, if any.
+     *
+     * @param mob The companion for which to find a pathfindable destination
+     * @param location The location near which to find a location
+     * @param radius The maximum radius from the location to search
+     * @param verticalRadius The vertical range to search above and below the
+     *        given location
+     * @return The identified location, or the given location if there is no
+     *         reachable location
+     */
+    public static Location getRandomPathfindableLocation(Mob mob, Location center, int radius, int verticalRadius) {
+        Pathfinder pathfinder = mob.getPathfinder();
+
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        
+        for (int i = 0; i < Settings.MAX_LOCATION_SEARCH_ATTEMPTS; i++) {
+            double angle = random.nextDouble() * 2 * Math.PI;
+            double length = random.nextDouble() * radius;
+        
+            double xOffset = length * Math.cos(angle);
+            double zOffset = length * Math.sin(angle);
+            int y = getSuitableGroundBlockY(mob.getWorld(), (int) xOffset, center.getBlockY(), (int) zOffset, verticalRadius);
+            
+            Location candidate = center.clone().add(xOffset, 0, zOffset);
+            candidate.setY(y + 1);
+
+            Pathfinder.PathResult path = pathfinder.findPath(candidate);
+            
+            if (path != null) {
+                Location finalPoint = path.getFinalPoint();
+
+                if (finalPoint != null && finalPoint.distanceSquared(candidate) < 2.5) {
+                    return candidate;
+                }
+            }
+        }
+        
+        return center;
     }
 }

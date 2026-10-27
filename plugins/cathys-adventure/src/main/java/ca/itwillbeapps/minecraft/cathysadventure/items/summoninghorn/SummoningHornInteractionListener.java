@@ -9,7 +9,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
+import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.GreatPyreneesManager;
@@ -17,15 +19,17 @@ import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
 public class SummoningHornInteractionListener implements Listener {
+    private final CathysAdventure plugin;
     private final PlayerManager playerManager;
     private final GreatPyreneesManager greatPyreneesManager;
     private final CompanionMovement companionMovement;
     private final GroguManager groguManager;
     private final SummoningHornItem summoningHornItem;
 
-    public SummoningHornInteractionListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, CompanionMovement companionMovement,
-            GroguManager groguManager, SummoningHornItem summoningHornItem) {
+    public SummoningHornInteractionListener(CathysAdventure plugin, PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager,
+            CompanionMovement companionMovement, GroguManager groguManager, SummoningHornItem summoningHornItem) {
 
+        this.plugin = plugin;
         this.playerManager = playerManager;
         this.greatPyreneesManager = greatPyreneesManager;
         this.companionMovement = companionMovement;
@@ -73,9 +77,9 @@ public class SummoningHornInteractionListener implements Listener {
             }
         }
 
-        Allay grogu = groguManager.getGrogu();
-        if (grogu != null && !grogu.isDead() && grogu.isValid()) {
-            companionMovement.teleportNearPlayer(grogu, cathy, Settings.GROGU_SUMMON_DISTANCE, true);
+        Allay allay = groguManager.getGrogu();
+        if (allay != null && !allay.isDead() && allay.isValid() && allay.getPersistentDataContainer().getOrDefault(plugin.getKeys().tamedKey, PersistentDataType.BOOLEAN, false)) {
+            companionMovement.teleportNearPlayer(allay, cathy, Settings.GROGU_SUMMON_DISTANCE, true);
         }
     }
 }

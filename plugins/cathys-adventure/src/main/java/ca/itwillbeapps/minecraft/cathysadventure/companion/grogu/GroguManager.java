@@ -3,7 +3,6 @@ package ca.itwillbeapps.minecraft.cathysadventure.companion.grogu;
 
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -15,6 +14,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
+import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 import ca.itwillbeapps.minecraft.cathysadventure.items.metealbead.MetalBeadItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
@@ -26,16 +26,22 @@ public class GroguManager {
     private final PlayerManager playerManager;
 
     private GroguEntity groguEntity;
+    private MetalBeadItem metalBeadItem;
+    private CompanionMovement companionMovement;
+    private GroguBehavior groguBehavior;
     private GroguChunkLoader groguChunkLoader;
     private GroguLoadedListener groguLoadedListener;
+    private GroguDamageListener groguDamageListener;
+    private GroguFeedingListener groguFeedingListener;
+    private GroguNamingListener groguNamingListener;
 
     private UUID groguUuid;
     private Allay grogu;
-    private MetalBeadItem metalBeadItem;
 
-    public GroguManager(CathysAdventure plugin, PlayerManager playerManager) {
+    public GroguManager(CathysAdventure plugin, PlayerManager playerManager, CompanionMovement companionMovement) {
         this.plugin = plugin;
         this.playerManager = playerManager;
+        this.companionMovement = companionMovement;
     }
 
     /**
@@ -48,6 +54,9 @@ public class GroguManager {
 
         metalBeadItem = new MetalBeadItem(plugin);
 
+        groguBehavior = new GroguBehavior(plugin, playerManager, this, companionMovement);
+        groguBehavior.start();
+
         groguChunkLoader = new GroguChunkLoader(plugin, this);
         groguChunkLoader.start();
 
@@ -55,6 +64,15 @@ public class GroguManager {
 
         groguLoadedListener = new GroguLoadedListener(this, groguEntity);
         pluginManager.registerEvents(groguLoadedListener, plugin);
+
+        groguDamageListener = new GroguDamageListener(groguEntity);
+        pluginManager.registerEvents(groguDamageListener, plugin);
+        
+        groguFeedingListener = new GroguFeedingListener(plugin, playerManager, metalBeadItem, groguEntity);
+        pluginManager.registerEvents(groguFeedingListener, plugin);
+        
+        groguNamingListener = new GroguNamingListener(groguEntity);
+        pluginManager.registerEvents(groguNamingListener, plugin);
 
         plugin.getLogger().info("Grogu manager initialized");
     }
@@ -126,9 +144,7 @@ public class GroguManager {
             location = world.getSpawnLocation().clone().add(0.5, 1, 0.5);
         }
         
-        Bukkit.getLogger().info("Post location start");
         Location postLocation = LocationFinder.nearLocation(location.clone().add(0.0, -1.0, 0.0), 1, 1);
-        Bukkit.getLogger().info("Post location end: " + postLocation.toString());
         postLocation.getBlock().setType(Material.OAK_FENCE);
 
         LeashHitch leashHitch = world.spawn(postLocation, LeashHitch.class);
@@ -201,9 +217,13 @@ public class GroguManager {
      * Cleans up the Grogu behaviors and listeners.
      */
     public void cleanUp() {
+        groguBehavior.stop();
         groguChunkLoader.stop();
 
         HandlerList.unregisterAll(groguLoadedListener);
+        HandlerList.unregisterAll(groguDamageListener);
+        HandlerList.unregisterAll(groguFeedingListener);
+        HandlerList.unregisterAll(groguNamingListener);
 
         plugin.getLogger().info("Grogu manager disabled");
     }

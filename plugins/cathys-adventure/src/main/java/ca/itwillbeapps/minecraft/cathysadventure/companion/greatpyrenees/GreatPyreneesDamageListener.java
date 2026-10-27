@@ -39,6 +39,6 @@ public class GreatPyreneesDamageListener implements Listener {
             return;
         }
 
-        event.setDamage(Math.max(0.0, currentHealth - Settings.GP_MINIMUM_HEALTH));
+        event.setDamage(Math.max(0.0, currentHealth - Settings.COMPANIONS_MINIMUM_HEALTH));
     }
 }
