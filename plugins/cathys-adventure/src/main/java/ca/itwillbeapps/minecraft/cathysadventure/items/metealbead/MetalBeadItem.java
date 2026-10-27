@@ -29,7 +29,7 @@ public class MetalBeadItem {
 
         metalBead.editMeta(meta -> {
             meta.displayName(Component.text("Metal Bead", NamedTextColor.LIGHT_PURPLE));
-            meta.lore(List.of(Component.text("A curious metallic bead. What could it be for?", NamedTextColor.GRAY)));
+            meta.lore(List.of(Component.text("A curious metallic bead that looks like it was unscrewed from somewhere. What could it be for?", NamedTextColor.GRAY)));
             meta.getPersistentDataContainer().set(plugin.getKeys().itemIdKey, PersistentDataType.STRING, ITEM_ID);
             meta.getPersistentDataContainer().set(plugin.getKeys().soulboundItemKey, PersistentDataType.BOOLEAN, true);
         });

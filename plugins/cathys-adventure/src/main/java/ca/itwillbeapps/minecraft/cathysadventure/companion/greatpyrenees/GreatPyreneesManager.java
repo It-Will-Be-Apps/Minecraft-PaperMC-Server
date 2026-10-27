@@ -125,7 +125,7 @@ public class GreatPyreneesManager {
         everestTargetListener = new EverestTargetListener(everestEntity);
         pluginManager.registerEvents(everestTargetListener, plugin);
 
-        summoningHornInteractionListener = new SummoningHornInteractionListener(playerManager, this, companionMovement, groguManager, summoningHornItem);
+        summoningHornInteractionListener = new SummoningHornInteractionListener(plugin, playerManager, this, companionMovement, groguManager, summoningHornItem);
         pluginManager.registerEvents(summoningHornInteractionListener, plugin);
 
         plugin.getLogger().info("Everest manager initialized");

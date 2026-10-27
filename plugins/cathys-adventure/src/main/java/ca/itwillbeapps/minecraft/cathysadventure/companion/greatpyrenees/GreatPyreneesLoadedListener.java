@@ -40,13 +40,14 @@ public class GreatPyreneesLoadedListener implements Listener {
 
             if (uuid.equals(greatPyreneesManager.getEverestUuid())) {
                 everestEntity.markAsEverest(wolf);
+                greatPyreneesManager.addGreatPyrenees(wolf);
             } else if (uuid.equals(greatPyreneesManager.getObelixUuid())) {
                 obelixEntity.markAsObelix(wolf);
+                greatPyreneesManager.addGreatPyrenees(wolf);
             } else { // TODO check if the list of puppies UUIDs contains this one
                 // TODO Mark as a GP puppy
+                // greatPyreneesManager.addGreatPyrenees(wolf);
             }
-
-            greatPyreneesManager.addGreatPyrenees(wolf);
         }
     }
 }

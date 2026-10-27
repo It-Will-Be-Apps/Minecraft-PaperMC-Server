@@ -4,11 +4,13 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 
 public class Settings {
+
     // Location settings
     public static final int LOCATION_SEARCH_RADIUS = 8;
     public static final int BIOME_SEARCH_RADIUS = 2000;
     public static final int LOCATION_HEIGHT_RANGE = 10;
     public static final int MAX_LOCATION_HEIGHT_RANGE = 200;
+    public static final int MAX_LOCATION_SEARCH_ATTEMPTS = 10;
 
     // Cheese settings
     public static final Material CHEESE_BASE_MATERIAL = Material.HONEYCOMB;
@@ -29,6 +31,9 @@ public class Settings {
     // Metal bead settings
     public static final Material METAL_BEAD_BASE_MATERIAL = Material.SNOWBALL;
 
+    // Companions settings
+    public static final double COMPANIONS_MINIMUM_HEALTH = 1.0;
+    
     // Everest settings
     public static final int EVEREST_THREAT_RADIUS = 16;
     public static final int EVEREST_SAFE_DISTANCE = 24;
@@ -44,9 +49,13 @@ public class Settings {
     public static final int GP_TELEPORT_THRESHOLD = 64;
     public static final int GP_SUMMON_DISTANCE = 1;
     public static final long GP_MAX_ENRAGE_DURATION = 30l * 20l;
-    public static final double GP_MINIMUM_HEALTH = 1.0;
     public static final double GP_CHEESE_HEAL_AMOUNT = 4.0;
 
     // Grogu settings
-    public static final int GROGU_SUMMON_DISTANCE = 5;
+    public static final int GROGU_MIN_ROAMING_DELAY = 2;
+    public static final int GROGU_MAX_ROAMING_DELAY = 5;
+    public static final int GROGU_ROAMING_RADIUS = 5;
+    public static final int GROGU_TELEPORT_THRESHOLD = 16;
+    public static final int GROGU_SUMMON_DISTANCE = 3;
+    public static final double GROGU_FISH_HEAL_AMOUT = 6.0;
 }

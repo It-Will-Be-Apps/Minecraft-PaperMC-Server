@@ -78,10 +78,21 @@ public class CompanionMovement {
      * @param mob The companion entity
      * @param player The player near which to teleport the companion
      * @param distance The target distance from the player
-     * @param force Whether to force a teleport even if no safe spot can be
-     *        found
+     * @param force Whether to force a teleport at the player's location
      */
     public void teleportNearPlayer(Mob mob, Player player, int distance, boolean force) {
+        if (force) {
+            Location playerLocation = player.getLocation().clone();
+            Vector playerPositionVector = playerLocation.toVector();
+
+            addRandomOffsetToLocation(playerPositionVector);
+
+            mob.getPathfinder().stopPathfinding();
+            mob.teleport(playerLocation);
+
+            return;
+        }
+
         Location destination = getMovementDestination(mob, player, distance);
         Location safeDestination = LocationFinder.nearLocation(destination, 0, Settings.LOCATION_HEIGHT_RANGE);
 

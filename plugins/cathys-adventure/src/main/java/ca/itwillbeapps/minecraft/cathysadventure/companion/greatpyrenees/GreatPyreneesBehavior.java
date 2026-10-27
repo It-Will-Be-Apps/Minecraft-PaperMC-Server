@@ -174,8 +174,7 @@ public class GreatPyreneesBehavior {
      *
      * @param everest The Everest entity
      * @param cathy The Cathy player
-     * @param distance The distance from Cathy to aim for
-     * @param speed The speed multipler at which Everest should move
+     * @param holdingCheese Whether Cathy is currently holding cheese
      */
     private void approachCathy(Wolf everest, Player cathy, boolean holdingCheese) {
         if (!everest.getWorld().getUID().equals(cathy.getWorld().getUID())) {
@@ -195,7 +194,7 @@ public class GreatPyreneesBehavior {
     }
 
     /**
-     * Stops the great pyrenees' behavior loop and cancels current movement.
+     * Stops the great pyrenees' behavior loop.
      */
     public void stop() {
         if (greatPyreneesBehaviorTask != null) {
