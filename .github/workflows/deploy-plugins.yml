@@ -46,4 +46,11 @@ jobs:
           BUCKET_NAME: ${{ vars.PLUGINS_BUCKET_NAME }}
         run: |
           set -euo pipefail
+
           aws s3 cp dist/ "s3://${BUCKET_NAME}/" --recursive --exclude "*" --include "*.jar"
+
+          if find dist/resource-packs -type f -name "*.zip" -print -quit | grep -q .; then
+            aws s3 cp dist/ "s3://${BUCKET_NAME}/" --recursive --exclude "*" --include "*.zip"
+          else
+            echo "No resource packs to upload."
+          fi

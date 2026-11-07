@@ -38,10 +38,10 @@ source $HOME/.sdkman/bin/sdkman-init.sh
 sdk selfupdate force
 echo 'Sdkman updated!'
 
-# Update Sdkman
+# Update Gradle
 echo 'Updating Gradle...'
 source $HOME/.sdkman/bin/sdkman-init.sh
-sdk upgrade gradle
+yes | sdk upgrade gradle
 echo 'Gradle updated!'
 
 # Update NVM

@@ -24,3 +24,9 @@ dependencies {
 java {
   toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
+
+tasks.register<Zip>("buildResourcePack") {
+    from("resource-pack")
+    archiveFileName.set("cathys-adventure.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("resource-pack"))
+}

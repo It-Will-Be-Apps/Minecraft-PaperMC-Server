@@ -2,7 +2,7 @@
 
 set -eu
 
-./gradlew clean build --info
+./gradlew clean build buildResourcePack --info
 
 cp build/libs/* /data/plugins/
 

@@ -1,0 +1,6 @@
+name: Cathys-Adventure
+version: '1.0.0'
+description: A Minecraft plugin that holds an adventure for Cathy.
+main: ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure
+api-version: '26.3'
+bootstrapper: ca.itwillbeapps.minecraft.cathysadventure.bootstrap.CathysAdventureBootstrap
