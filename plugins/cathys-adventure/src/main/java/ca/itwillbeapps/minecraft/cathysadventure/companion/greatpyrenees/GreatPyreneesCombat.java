@@ -72,9 +72,9 @@ public class GreatPyreneesCombat {
                 double damageModifier = 0;
 
                 if (greatPyreneesAreEnraged) {
-                    damageModifier = 1.0;
+                    damageModifier = Settings.GP_ENRAGE_DAMAGE_MODIFIER;
                 } else if (damageBonusActive) {
-                    damageModifier = 0.5;
+                    damageModifier = Settings.GP_BASE_DAMAGE_MODIFIER;;
                 }
 
                 updateDamageModifier(attackDamageAttribute, damageModifier);

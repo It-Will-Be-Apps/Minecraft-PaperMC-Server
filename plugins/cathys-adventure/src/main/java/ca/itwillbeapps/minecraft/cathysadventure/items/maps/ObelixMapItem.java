@@ -67,6 +67,11 @@ public class ObelixMapItem {
             meta.setMapView(mapView);
             meta.displayName(Component.text("Snowy map", NamedTextColor.LIGHT_PURPLE));
             meta.lore(List.of(Component.text("Everest was really holding on to this map, it must be important...", NamedTextColor.GRAY)));
+            meta.lore(List.of(
+                Component.text("Everest was really holding on to this map.", NamedTextColor.GRAY),
+                Component.text("It must be important....", NamedTextColor.GRAY),
+                Component.text("This area seems distant but not dangerous.", NamedTextColor.GRAY)
+            ));
             meta.getPersistentDataContainer().set(plugin.getKeys().itemIdKey, PersistentDataType.STRING, ITEM_ID);
             meta.getPersistentDataContainer().set(plugin.getKeys().soulboundItemKey, PersistentDataType.BOOLEAN, true);
         });

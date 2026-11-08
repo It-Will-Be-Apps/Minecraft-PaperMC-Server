@@ -5,17 +5,17 @@ import org.bukkit.entity.Wolf;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import io.papermc.paper.event.entity.EntityToggleSitEvent;
 
 public class GreatPyreneesSittingListener implements Listener {
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
+    private final GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
 
-    public GreatPyreneesSittingListener(EverestEntity everestEntity, ObelixEntity obelixEntity) {
+    public GreatPyreneesSittingListener(EverestEntity everestEntity, ObelixEntity obelixEntity, GreatPyreneesPuppyEntity greatPyreneesPuppyEntity) {
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
+        this.greatPyreneesPuppyEntity = greatPyreneesPuppyEntity;
     }
 
     /**
@@ -30,7 +30,7 @@ public class GreatPyreneesSittingListener implements Listener {
             return;
         }
 
-        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf)) { // TODO puppies
+        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf) && !greatPyreneesPuppyEntity.isGreatPyreneesPuppy(wolf)) {
             return;
         }
 

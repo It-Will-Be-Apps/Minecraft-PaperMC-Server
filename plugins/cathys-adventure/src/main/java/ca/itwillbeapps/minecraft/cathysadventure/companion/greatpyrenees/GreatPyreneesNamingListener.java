@@ -8,16 +8,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
+import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
 public class GreatPyreneesNamingListener implements Listener {
+    private final PlayerManager playerManager;
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
+    private final GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
 
-    public GreatPyreneesNamingListener(EverestEntity everestEntity, ObelixEntity obelixEntity) {
+    public GreatPyreneesNamingListener(PlayerManager playerManager, EverestEntity everestEntity, ObelixEntity obelixEntity, GreatPyreneesPuppyEntity greatPyreneesPuppyEntity) {
+        this.playerManager = playerManager;
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
+        this.greatPyreneesPuppyEntity = greatPyreneesPuppyEntity;
     }
 
     /**
@@ -36,13 +39,25 @@ public class GreatPyreneesNamingListener implements Listener {
             return;
         }
 
-        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf)) {
-            return;
-        }
-
         Player player = event.getPlayer();
 
         if (player.getInventory().getItemInMainHand().getType() != Material.NAME_TAG) {
+            return;
+        }
+
+        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf) && !greatPyreneesPuppyEntity.isGreatPyreneesPuppy(wolf)) {
+            return;
+        }
+
+        Player cathy = playerManager.getCathy();
+
+        if (cathy == null || !player.getUniqueId().equals(cathy.getUniqueId())) {
+            event.setCancelled(true);
+            player.sendMessage("You cannot rename this dog!");
+            return;
+        }
+
+        if (greatPyreneesPuppyEntity.isGreatPyreneesPuppy(wolf)) {
             return;
         }
 

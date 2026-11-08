@@ -14,8 +14,6 @@ import org.bukkit.scheduler.BukkitTask;
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 
@@ -75,7 +73,7 @@ public class GreatPyreneesBehavior {
             if (!wolf.isDead() && wolf.isValid()) {
                 if (wolf.isTamed()) {
                     tamedGreatPyreneesTick(wolf, cathy);
-                    break;
+                    continue;
                 }
 
                 if (everestEntity.isEverest(wolf)) {

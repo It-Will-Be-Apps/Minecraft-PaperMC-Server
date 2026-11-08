@@ -9,18 +9,19 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
-
 public class GreatPyreneesLoadedListener implements Listener {
     private final GreatPyreneesManager greatPyreneesManager;
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
+    private final GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
 
-    public GreatPyreneesLoadedListener(GreatPyreneesManager greatPyreneesManager, EverestEntity everestEntity, ObelixEntity obelixEntity) {
+    public GreatPyreneesLoadedListener(GreatPyreneesManager greatPyreneesManager, EverestEntity everestEntity, ObelixEntity obelixEntity,
+            GreatPyreneesPuppyEntity greatPyreneesPuppyEntity) {
+
         this.greatPyreneesManager = greatPyreneesManager;
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
+        this.greatPyreneesPuppyEntity = greatPyreneesPuppyEntity;
     }
 
     /**
@@ -44,9 +45,9 @@ public class GreatPyreneesLoadedListener implements Listener {
             } else if (uuid.equals(greatPyreneesManager.getObelixUuid())) {
                 obelixEntity.markAsObelix(wolf);
                 greatPyreneesManager.addGreatPyrenees(wolf);
-            } else { // TODO check if the list of puppies UUIDs contains this one
-                // TODO Mark as a GP puppy
-                // greatPyreneesManager.addGreatPyrenees(wolf);
+            } else if (greatPyreneesManager.getPuppiesUuids().contains(uuid)) {
+                greatPyreneesPuppyEntity.markAsGreatPyreneesPuppy(wolf);
+                greatPyreneesManager.addGreatPyrenees(wolf);
             }
         }
     }

@@ -13,8 +13,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
 import ca.itwillbeapps.minecraft.cathysadventure.items.maps.GroguMapItem;
@@ -35,10 +33,11 @@ public class GreatPyreneesFeedingListener implements Listener {
     private final MetalBeadItem metalBeadItem;
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
+    private final GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
 
     public GreatPyreneesFeedingListener(PlayerManager playerManager, GreatPyreneesManager greatPyreneesManager, GroguManager groguManager,
             CheeseItem cheeseItem, SummoningHornItem summoningHornItem, ObelixMapItem obelixMapItem, GroguMapItem groguMapItem, MetalBeadItem metalBeadItem,
-            EverestEntity everestEntity, ObelixEntity obelixEntity) {
+            EverestEntity everestEntity, ObelixEntity obelixEntity, GreatPyreneesPuppyEntity greatPyreneesPuppyEntity) {
 
         this.playerManager = playerManager;
         this.greatPyreneesManager = greatPyreneesManager;
@@ -50,6 +49,7 @@ public class GreatPyreneesFeedingListener implements Listener {
         this.metalBeadItem = metalBeadItem;
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
+        this.greatPyreneesPuppyEntity = greatPyreneesPuppyEntity;
     }
 
     /**
@@ -68,7 +68,7 @@ public class GreatPyreneesFeedingListener implements Listener {
             return;
         }
 
-        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf)) { // TODO Also check for puppies
+        if (!everestEntity.isEverest(wolf) && !obelixEntity.isObelix(wolf) && !greatPyreneesPuppyEntity.isGreatPyreneesPuppy(wolf)) {
             return;
         }
 

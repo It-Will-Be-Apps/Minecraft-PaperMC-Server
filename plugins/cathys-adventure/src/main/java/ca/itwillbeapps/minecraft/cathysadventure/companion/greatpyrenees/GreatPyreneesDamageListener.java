@@ -8,16 +8,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 
 public class GreatPyreneesDamageListener implements Listener {
     private final EverestEntity everestEntity;
     private final ObelixEntity obelixEntity;
+    private final GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
 
-    public GreatPyreneesDamageListener(EverestEntity everestEntity, ObelixEntity obelixEntity) {
+    public GreatPyreneesDamageListener(EverestEntity everestEntity, ObelixEntity obelixEntity, GreatPyreneesPuppyEntity greatPyreneesPuppyEntity) {
         this.everestEntity = everestEntity;
         this.obelixEntity = obelixEntity;
+        this.greatPyreneesPuppyEntity = greatPyreneesPuppyEntity;
     }
 
     /**
@@ -29,7 +29,7 @@ public class GreatPyreneesDamageListener implements Listener {
     public void onDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
 
-        if (!everestEntity.isEverest(entity) && !obelixEntity.isObelix(entity)) { // TODO Also check for puppies
+        if (!everestEntity.isEverest(entity) && !obelixEntity.isObelix(entity) && !greatPyreneesPuppyEntity.isGreatPyreneesPuppy(entity)) {
             return;
         }
 

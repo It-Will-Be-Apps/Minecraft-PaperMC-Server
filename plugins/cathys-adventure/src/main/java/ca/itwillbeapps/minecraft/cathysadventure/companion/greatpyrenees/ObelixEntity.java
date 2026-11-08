@@ -1,4 +1,4 @@
-package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix;
+package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.persistence.PersistentDataType;
