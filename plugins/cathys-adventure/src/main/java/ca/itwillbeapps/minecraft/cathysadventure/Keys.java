@@ -6,6 +6,7 @@ import org.bukkit.plugin.Plugin;
 public class Keys {
     private static final String ITEM_ID_KEY = "ITEM_ID";
     private static final String SOULBOUND_ITEM_KEY = "SOULBOUND_ITEM";
+    private static final String CHEESE_MODEL = "cheese";
     private static final String CHEESE_FURNACE_RECIPE_ID_KEY = "CHEESE_FURNACE_RECIPE";
     private static final String CHEESE_SMOKER_RECIPE_ID_KEY = "CHEESE_SMOKER_RECIPE";
     private static final String CHEESE_CAMPFIRE_RECIPE_ID_KEY = "CHEESE_CAMPFIRE_RECIPE";
@@ -18,6 +19,7 @@ public class Keys {
 
     public final NamespacedKey itemIdKey;
     public final NamespacedKey soulboundItemKey;
+    public final NamespacedKey cheeseModelKey;
     public final NamespacedKey cheeseFurnaceRecipeIdKey;
     public final NamespacedKey cheeseSmokerRecipeIdKey;
     public final NamespacedKey cheeseCampfireRecipeIdKey;
@@ -31,6 +33,7 @@ public class Keys {
     public Keys(Plugin plugin) {
         itemIdKey = new NamespacedKey(plugin, ITEM_ID_KEY);
         soulboundItemKey = new NamespacedKey(plugin, SOULBOUND_ITEM_KEY);
+        cheeseModelKey = new NamespacedKey(plugin, CHEESE_MODEL);
         cheeseFurnaceRecipeIdKey = new NamespacedKey(plugin, CHEESE_FURNACE_RECIPE_ID_KEY);
         cheeseSmokerRecipeIdKey = new NamespacedKey(plugin, CHEESE_SMOKER_RECIPE_ID_KEY);
         cheeseCampfireRecipeIdKey = new NamespacedKey(plugin, CHEESE_CAMPFIRE_RECIPE_ID_KEY);

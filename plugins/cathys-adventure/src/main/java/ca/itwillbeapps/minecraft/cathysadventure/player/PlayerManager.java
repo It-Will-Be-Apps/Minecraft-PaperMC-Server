@@ -7,6 +7,7 @@ import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
+import ca.itwillbeapps.minecraft.cathysadventure.items.ItemDamageListener;
 
 public class PlayerManager {
     private final CathysAdventure plugin;
@@ -14,6 +15,7 @@ public class PlayerManager {
     private Player cathy;
     private PlayerListener playerListener;
     private PlayerDeathListener playerDeathListener;
+    private ItemDamageListener itemDamageListener;
 
     public PlayerManager(CathysAdventure plugin) {
         this.plugin = plugin;
@@ -32,6 +34,9 @@ public class PlayerManager {
 
         playerDeathListener = new PlayerDeathListener(plugin);
         pluginManager.registerEvents(playerDeathListener, plugin);
+
+        itemDamageListener = new ItemDamageListener(plugin);
+        pluginManager.registerEvents(itemDamageListener, plugin);
 
         plugin.getLogger().info("Player manager initialized");
     }
@@ -90,6 +95,7 @@ public class PlayerManager {
     public void cleanUp() {
         HandlerList.unregisterAll(playerListener);
         HandlerList.unregisterAll(playerDeathListener);
+        HandlerList.unregisterAll(itemDamageListener);
 
         plugin.getLogger().info("Everest manager disabled");
     }

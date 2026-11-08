@@ -29,7 +29,7 @@ public class Settings {
     public static final Material FETCH_BALL_BASE_MATERIAL = Material.SNOWBALL;
 
     // Metal bead settings
-    public static final Material METAL_BEAD_BASE_MATERIAL = Material.SNOWBALL;
+    public static final Material METAL_BEAD_BASE_MATERIAL = Material.STICK;
 
     // Companions settings
     public static final double COMPANIONS_MINIMUM_HEALTH = 1.0;
@@ -48,11 +48,11 @@ public class Settings {
     // Great Pyrenees settings
     public static final int GP_TELEPORT_THRESHOLD = 64;
     public static final int GP_SUMMON_DISTANCE = 1;
-    public static final double GP_BASE_DAMAGE_MODIFIER = 1.0;
-    public static final double GP_ENRAGE_DAMAGE_MODIFIER = 3.0;
+    public static final double GP_BASE_DAMAGE_MODIFIER = 0.5;
+    public static final double GP_ENRAGE_DAMAGE_MODIFIER = 1.0;
     public static final long GP_MAX_ENRAGE_DURATION = 30l * 20l;
     public static final double GP_CHEESE_HEAL_AMOUNT = 4.0;
-    public static final int GP_MAX_PUPPIES = 20;
+    public static final int GP_MAX_PUPPIES = 8;
     public static final double GP_BREEDING_DISTANCE = 8.0;
 
     // Grogu settings

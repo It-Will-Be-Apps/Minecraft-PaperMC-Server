@@ -43,6 +43,7 @@ public class CheeseItem {
         );
 
         cheese.editMeta(meta -> {
+            meta.setItemModel(plugin.getKeys().cheeseModelKey);
             meta.displayName(Component.text("Cheese", NamedTextColor.YELLOW));
             meta.lore(List.of(Component.text("Rumored to be very popular with some dogs...", NamedTextColor.GRAY)));
             meta.getPersistentDataContainer().set(plugin.getKeys().itemIdKey, PersistentDataType.STRING, ITEM_ID);
