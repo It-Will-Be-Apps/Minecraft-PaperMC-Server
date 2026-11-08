@@ -48,7 +48,7 @@ for gradlew in plugins/*/gradlew; do
     echo "Staged: dist/${plugin_name}.jar"
 
     # Stage the resource packs
-    if [ -d "resource-pack" ]; then
+    if [ -d "$plugin_dir/resource-pack" ]; then
         mapfile -t packs < <(find "$plugin_dir/build/resource-pack" -maxdepth 1 -type f -name '*.zip')
 
         if [ "${#packs[@]}" -ne 1 ]; then

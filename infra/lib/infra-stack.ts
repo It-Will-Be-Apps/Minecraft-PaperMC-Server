@@ -1,3 +1,5 @@
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
@@ -111,7 +113,7 @@ export class InfraStack extends cdk.Stack {
     });
 
     // ---------------------------------------------------------------------
-    // S3 Bucket to hold the custom plugins
+    // S3 Bucket to hold the custom plugins and resource packs
     // ---------------------------------------------------------------------
     const pluginsBucket = new s3.Bucket(this, APP_NAME + '-PluginsBucket', {
       bucketName: 'minecraft-papermc-server-plugins-bucket',
@@ -121,6 +123,23 @@ export class InfraStack extends cdk.Stack {
     });
 
     pluginsBucket.grantPut(githubDeploymentRole, '*');
+
+    // ---------------------------------------------------------------------
+    // CloudFront distribution to serve the custom resource packs
+    // ---------------------------------------------------------------------
+    const resourcePacksDistribution = new cloudfront.Distribution(this, APP_NAME + '-ResourcePacksDistribution', {
+      comment: `${APP_NAME} resource packs`,
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(pluginsBucket, {
+          originPath: '/resource-pack'
+        }),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        compress: false
+      },
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_100
+    });
 
     // ---------------------------------------------------------------------
     // VPC to host the server
@@ -459,6 +478,7 @@ export class InfraStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'DiscordFunctionUrl', { value: discordInterfaceLambdaUrl.url });
     new cdk.CfnOutput(this, 'EC2SSHPolicyArn', { value: serverEc2InstanceSSHPolicy.managedPolicyArn });
     new cdk.CfnOutput(this, 'PluginsBucketName', { value: pluginsBucket.bucketName });
+    new cdk.CfnOutput(this, 'ResourcePacksBaseUrl', { value: `https://${resourcePacksDistribution.distributionDomainName}` });
     new cdk.CfnOutput(this, 'GitHubDeploymentRoleArn', { value: githubDeploymentRole.roleArn });
   }
 }

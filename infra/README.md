@@ -12,29 +12,33 @@ The stack defines the following AWS resources:
 
 ### 1. S3 Bucket
 
-A S3 bucket to hold the custom plugins
+A S3 bucket to hold the custom plugins and resource packs
 
-### 2. VPC
+### 2. CloudFront distribution
+
+A CloudFront distribution to serve the custom resource packs
+
+### 3. VPC
 
 A VPC to host the Minecraft server
 
-### 3. EBS Storage
+### 4. EBS Storage
 
 An EBS storage to hold the world data
 
-### 4. EC2 Instance
+### 5. EC2 Instance
 
 An EC2 instance to run the Minecraft server
 
-### 5. Lambda Function
+### 6. Lambda Function
 
 A Lambda function to interact with the Minecraft server
 
-### 6. Lambda Function
+### 7. Lambda Function
 
 A Lambda function to interface with Discord commands
 
-### 7. Resource Group
+### 8. Resource Group
 
 A resource group to be able to easily browse all resources related to the project
 

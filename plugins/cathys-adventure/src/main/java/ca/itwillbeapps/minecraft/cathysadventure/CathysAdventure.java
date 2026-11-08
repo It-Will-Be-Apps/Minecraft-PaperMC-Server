@@ -37,7 +37,7 @@ public class CathysAdventure extends JavaPlugin implements Listener {
 
         companionMovement = new CompanionMovement();
 
-        groguManager = new GroguManager(this, playerManager);
+        groguManager = new GroguManager(this, playerManager, companionMovement);
         groguManager.initialize();
 
         greatPyreneesManager = new GreatPyreneesManager(this, playerManager, groguManager, cheeseManager.getCheeseItem(),

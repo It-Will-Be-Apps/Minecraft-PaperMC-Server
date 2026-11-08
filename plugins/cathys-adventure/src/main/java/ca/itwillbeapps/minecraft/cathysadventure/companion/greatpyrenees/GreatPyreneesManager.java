@@ -2,11 +2,15 @@
 package ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Entity;
@@ -17,9 +21,8 @@ import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
 import ca.itwillbeapps.minecraft.cathysadventure.Settings;
+import ca.itwillbeapps.minecraft.cathysadventure.bootstrap.CathysAdventureBootstrap;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.everest.EverestEntity;
-import ca.itwillbeapps.minecraft.cathysadventure.companion.greatpyrenees.obelix.ObelixEntity;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.grogu.GroguManager;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 import ca.itwillbeapps.minecraft.cathysadventure.items.cheese.CheeseItem;
@@ -29,6 +32,8 @@ import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHo
 import ca.itwillbeapps.minecraft.cathysadventure.items.summoninghorn.SummoningHornItem;
 import ca.itwillbeapps.minecraft.cathysadventure.player.PlayerManager;
 import ca.itwillbeapps.minecraft.cathysadventure.util.LocationFinder;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 
 public class GreatPyreneesManager {
@@ -43,6 +48,7 @@ public class GreatPyreneesManager {
     private SummoningHornItem summoningHornItem;
     private EverestEntity everestEntity;
     private ObelixEntity obelixEntity;
+    private GreatPyreneesPuppyEntity greatPyreneesPuppyEntity;
     private GreatPyreneesBehavior greatPyreneesBehavior;
     private GreatPyreneesCombat greatPyreneesCombat;
     private GreatPyreneesChunkLoader greatPyreneesChunkLoader;
@@ -58,7 +64,7 @@ public class GreatPyreneesManager {
 
     private UUID everestUuid;
     private UUID obelixUuid;
-    private List<UUID> puppiesUuids;
+    private Set<UUID> puppiesUuids;
 
     private Map<UUID, Wolf> greatPyrenees;
 
@@ -79,6 +85,7 @@ public class GreatPyreneesManager {
      * Everest and Obélix in a proper location if required.
      */
     public void initialize() {
+        puppiesUuids = new HashSet<>();
         greatPyrenees = new HashMap<>();
 
         everestEntity = new EverestEntity(plugin);
@@ -86,6 +93,9 @@ public class GreatPyreneesManager {
 
         obelixEntity = new ObelixEntity(plugin);
         ensureObelixExists();
+
+        greatPyreneesPuppyEntity = new GreatPyreneesPuppyEntity(plugin);
+        loadPuppies();
 
         summoningHornItem = new SummoningHornItem(plugin);
 
@@ -100,26 +110,26 @@ public class GreatPyreneesManager {
 
         PluginManager pluginManager = plugin.getServer().getPluginManager();
 
-        greatPyreneesLoadedListener = new GreatPyreneesLoadedListener(this, everestEntity, obelixEntity);
+        greatPyreneesLoadedListener = new GreatPyreneesLoadedListener(this, everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesLoadedListener, plugin);
 
-        greatPyreneesDamageListener = new GreatPyreneesDamageListener(everestEntity, obelixEntity);
+        greatPyreneesDamageListener = new GreatPyreneesDamageListener(everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesDamageListener, plugin);
 
         greatPyreneesEnrageListener = new GreatPyreneesEnrageListener(plugin, playerManager, greatPyreneesCombat);
         pluginManager.registerEvents(greatPyreneesEnrageListener, plugin);
         
         greatPyreneesFeedingListener = new GreatPyreneesFeedingListener(playerManager, this, groguManager, cheeseItem, summoningHornItem, obelixMapItem, groguMapItem,
-            groguManager.getMetalBeadItem(), everestEntity, obelixEntity);
+            groguManager.getMetalBeadItem(), everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesFeedingListener, plugin);
         
-        greatPyreneesBreedingListener = new GreatPyreneesBreedingListener(playerManager, everestEntity, obelixEntity);
+        greatPyreneesBreedingListener = new GreatPyreneesBreedingListener(playerManager, this, everestEntity, obelixEntity);
         pluginManager.registerEvents(greatPyreneesBreedingListener, plugin);
         
-        greatPyreneesNamingListener = new GreatPyreneesNamingListener(everestEntity, obelixEntity);
+        greatPyreneesNamingListener = new GreatPyreneesNamingListener(playerManager, everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesNamingListener, plugin);
 
-        greatPyreneesSittingListener = new GreatPyreneesSittingListener(everestEntity, obelixEntity);
+        greatPyreneesSittingListener = new GreatPyreneesSittingListener(everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesSittingListener, plugin);
 
         everestTargetListener = new EverestTargetListener(everestEntity);
@@ -199,11 +209,15 @@ public class GreatPyreneesManager {
         }
 
         Wolf everest = world.spawn(location, Wolf.class);
-        everest.setVariant(Wolf.Variant.SNOWY);
         everest.customName(Component.text("Mysterious Dog"));
         everest.setCustomNameVisible(false);
         everest.setPersistent(true);
         everest.setRemoveWhenFarAway(false);
+
+        Wolf.Variant femaleGreatPyreneesVariant = RegistryAccess.registryAccess().getRegistry(RegistryKey.WOLF_VARIANT).get(NamespacedKey.fromString(CathysAdventureBootstrap.FEMALE_GP_VARIANT));
+        if (femaleGreatPyreneesVariant != null) {
+            everest.setVariant(femaleGreatPyreneesVariant);
+        }
 
         everestEntity.markAsEverest(everest);
         saveEverestUuid(everest.getUniqueId());
@@ -300,13 +314,17 @@ public class GreatPyreneesManager {
         }
 
         Wolf obelix = world.spawn(location, Wolf.class);
-        obelix.setVariant(Wolf.Variant.SNOWY);
         obelix.customName(Component.text("Mysterious Dog"));
         obelix.setCustomNameVisible(false);
         obelix.setPersistent(true);
         obelix.setRemoveWhenFarAway(false);
         obelix.getPersistentDataContainer().set(plugin.getKeys().obelixHomeLocationKey, PersistentDataType.INTEGER_ARRAY,
             new int[] { location.getBlockX(), location.getBlockY(), location.getBlockZ() });
+
+        Wolf.Variant maleGreatPyreneesVariant = RegistryAccess.registryAccess().getRegistry(RegistryKey.WOLF_VARIANT).get(NamespacedKey.fromString(CathysAdventureBootstrap.MALE_GP_VARIANT));
+        if (maleGreatPyreneesVariant != null) {
+            obelix.setVariant(maleGreatPyreneesVariant);
+        }
 
         obelixEntity.markAsObelix(obelix);
         saveObelixUuid(obelix.getUniqueId());
@@ -333,6 +351,90 @@ public class GreatPyreneesManager {
      */
     public UUID getObelixUuid() {
         return obelixUuid;
+    }
+
+    /**
+     * Loads any existing puppies.
+     */
+    private void loadPuppies() {
+        List<String> savedUuids = plugin.getConfig().getStringList(Configurations.PUPPIES_UUIDS);
+
+        if (savedUuids == null || savedUuids.isEmpty()) {
+            return;
+        }
+
+        for (String savedUuid : savedUuids) {
+            try {
+                UUID uuid = UUID.fromString(savedUuid);
+                puppiesUuids.add(uuid);
+
+                Entity savedEntity = plugin.getServer().getEntity(uuid);
+                if (savedEntity == null) {
+                    plugin.getLogger().info("Puppy is not currently loaded, waiting for his saved entity to load");
+                    return;
+                }
+
+                if (savedEntity instanceof Wolf wolf) {
+                    greatPyrenees.put(uuid, wolf);
+                    greatPyreneesPuppyEntity.markAsGreatPyreneesPuppy(wolf);
+                    plugin.getLogger().info("Found existing puppy");
+                    return;
+                }
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().warning("Puppy's saved UUID is invalid");
+            }
+        }
+    }
+
+    /**
+     * Verifies if an additional puppy can spawn.
+     *
+     * @return Whether a new puppy can spawn
+     */
+    public boolean canPuppySpawn() {
+        return puppiesUuids.size() < Settings.GP_MAX_PUPPIES;
+    }
+
+    /**
+     * Registers the given wolf as a great pyrenees puppy.
+     *
+     * @param puppy The new puppy to register
+     */
+    public void registerPuppy(Wolf puppy) {
+        greatPyreneesPuppyEntity.markAsGreatPyreneesPuppy(puppy);
+
+        puppy.setAgeLock(true);
+        puppy.setPersistent(true);
+        puppy.setRemoveWhenFarAway(false);
+        puppy.customName(Component.text("Puppy"));
+        puppy.setCustomNameVisible(false);
+
+        UUID puppyUuid = puppy.getUniqueId();
+        savePuppyUuid(puppyUuid);
+        greatPyrenees.put(puppyUuid, puppy);
+
+        plugin.getLogger().info("Registered new great pyrenees puppy");
+    }
+
+    /**
+     * Saves the given UUID as a puppy's UUID.
+     *
+     * @param uuid The UUID to save for the puppy
+     */
+    private void savePuppyUuid(UUID uuid) {
+        puppiesUuids.add(uuid);
+        List<String> puppiesUuidsAsStrings = puppiesUuids.stream().map(UUID::toString).collect(Collectors.toList());
+        plugin.getConfig().set(Configurations.PUPPIES_UUIDS, puppiesUuidsAsStrings);
+        plugin.saveConfig();
+    }
+
+    /**
+     * Returns the puppies' UUIDs if known.
+     *
+     * @return The puppies' UUIDs
+     */
+    public Set<UUID> getPuppiesUuids() {
+        return puppiesUuids;
     }
 
     /**
