@@ -53,7 +53,7 @@ public class GreatPyreneesManager {
     private GreatPyreneesCombat greatPyreneesCombat;
     private GreatPyreneesChunkLoader greatPyreneesChunkLoader;
     private GreatPyreneesLoadedListener greatPyreneesLoadedListener;
-    private EverestTargetListener everestTargetListener;
+    private GreatPyreneesTargetListener everestTargetListener;
     private GreatPyreneesDamageListener greatPyreneesDamageListener;
     private GreatPyreneesEnrageListener greatPyreneesEnrageListener;
     private GreatPyreneesFeedingListener greatPyreneesFeedingListener;
@@ -132,7 +132,7 @@ public class GreatPyreneesManager {
         greatPyreneesSittingListener = new GreatPyreneesSittingListener(everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(greatPyreneesSittingListener, plugin);
 
-        everestTargetListener = new EverestTargetListener(everestEntity);
+        everestTargetListener = new GreatPyreneesTargetListener(everestEntity, obelixEntity, greatPyreneesPuppyEntity);
         pluginManager.registerEvents(everestTargetListener, plugin);
 
         summoningHornInteractionListener = new SummoningHornInteractionListener(plugin, playerManager, this, companionMovement, groguManager, summoningHornItem);
@@ -212,7 +212,7 @@ public class GreatPyreneesManager {
         everest.customName(Component.text("Mysterious Dog"));
         everest.setCustomNameVisible(false);
         everest.setPersistent(true);
-        everest.setRemoveWhenFarAway(false);
+        everest.setPersistenceRequired(true);
 
         Wolf.Variant femaleGreatPyreneesVariant = RegistryAccess.registryAccess().getRegistry(RegistryKey.WOLF_VARIANT).get(NamespacedKey.fromString(CathysAdventureBootstrap.FEMALE_GP_VARIANT));
         if (femaleGreatPyreneesVariant != null) {
@@ -317,7 +317,7 @@ public class GreatPyreneesManager {
         obelix.customName(Component.text("Mysterious Dog"));
         obelix.setCustomNameVisible(false);
         obelix.setPersistent(true);
-        obelix.setRemoveWhenFarAway(false);
+        obelix.setPersistenceRequired(true);
         obelix.getPersistentDataContainer().set(plugin.getKeys().obelixHomeLocationKey, PersistentDataType.INTEGER_ARRAY,
             new int[] { location.getBlockX(), location.getBlockY(), location.getBlockZ() });
 
@@ -405,7 +405,7 @@ public class GreatPyreneesManager {
 
         puppy.setAgeLock(true);
         puppy.setPersistent(true);
-        puppy.setRemoveWhenFarAway(false);
+        puppy.setPersistenceRequired(true);
         puppy.customName(Component.text("Puppy"));
         puppy.setCustomNameVisible(false);
 

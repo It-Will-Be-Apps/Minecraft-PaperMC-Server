@@ -10,6 +10,11 @@
             "type": "bind"
         },
         {
+            "source": "${localEnv:USERPROFILE}/AppData/Roaming/.minecraft/resourcepacks",
+            "target": "${containerWorkspaceFolder}/resource-packs",
+            "type": "bind"
+        },
+        {
             "source": "minecraft-papermc-server-data",
             "target": "/data",
             "type": "volume"

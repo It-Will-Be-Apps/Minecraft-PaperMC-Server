@@ -27,6 +27,6 @@ java {
 
 tasks.register<Zip>("buildResourcePack") {
     from("resource-pack")
-    archiveFileName.set("cathys-adventure.zip")
-    destinationDirectory.set(layout.buildDirectory.dir("resource-pack"))
+    archiveFileName.set("${project.name}.zip")
+    destinationDirectory.set(layout.projectDirectory.dir("../../resource-packs"))
 }

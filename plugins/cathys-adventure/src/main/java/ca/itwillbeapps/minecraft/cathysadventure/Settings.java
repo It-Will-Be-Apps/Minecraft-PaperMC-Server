@@ -56,6 +56,7 @@ public class Settings {
     public static final double GP_BREEDING_DISTANCE = 8.0;
 
     // Grogu settings
+    public static final double GROGU_MOVEMENT_SPEED = 0.05;
     public static final int GROGU_MIN_ROAMING_DELAY = 2;
     public static final int GROGU_MAX_ROAMING_DELAY = 5;
     public static final int GROGU_ROAMING_RADIUS = 5;

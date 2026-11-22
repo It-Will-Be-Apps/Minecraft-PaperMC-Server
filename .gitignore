@@ -12,6 +12,7 @@ infra/*.d.ts
 
 # Minecraft data
 data/
+resource-packs/
 
 # Minecraft plugins
 server/plugins/

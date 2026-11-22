@@ -4,12 +4,12 @@ set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 DIST_DIR="$REPO_ROOT/dist"
+RESOURCE_PACKS_DIR="$REPO_ROOT/resource-packs"
 
 cd "$REPO_ROOT"
 
-rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR"
-mkdir -p "$DIST_DIR/resource-packs"
+rm -rf "$DIST_DIR" "$RESOURCE_PACKS_DIR"
+mkdir -p "$DIST_DIR" "$DIST_DIR/resource-packs" "$RESOURCE_PACKS_DIR"
 
 found=0
 
@@ -49,15 +49,14 @@ for gradlew in plugins/*/gradlew; do
 
     # Stage the resource packs
     if [ -d "$plugin_dir/resource-pack" ]; then
-        mapfile -t packs < <(find "$plugin_dir/build/resource-pack" -maxdepth 1 -type f -name '*.zip')
+        pack_file="$RESOURCE_PACKS_DIR/${plugin_name}.zip"
 
-        if [ "${#packs[@]}" -ne 1 ]; then
-            echo "ERROR: Expected exactly one resource pack for $plugin_name; found ${#packs[@]}."
-            printf '%s\n' "${packs[@]}"
+        if [ ! -f "$pack_file" ]; then
+            echo "ERROR: Expected resource pack at $pack_file for $plugin_name, but it was not found."
             exit 1
         fi
 
-        cp "${packs[0]}" "$DIST_DIR/resource-packs/${plugin_name}.zip"
+        cp "$pack_file" "$DIST_DIR/resource-packs/${plugin_name}.zip"
         echo "Staged: dist/resource-packs/${plugin_name}.zip"
     fi
 done

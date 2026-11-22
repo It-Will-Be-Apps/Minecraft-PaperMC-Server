@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Allay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LeashHitch;
@@ -14,6 +16,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.PluginManager;
 
 import ca.itwillbeapps.minecraft.cathysadventure.CathysAdventure;
+import ca.itwillbeapps.minecraft.cathysadventure.Settings;
 import ca.itwillbeapps.minecraft.cathysadventure.companion.CompanionMovement;
 import ca.itwillbeapps.minecraft.cathysadventure.config.Configurations;
 import ca.itwillbeapps.minecraft.cathysadventure.items.metealbead.MetalBeadItem;
@@ -33,6 +36,7 @@ public class GroguManager {
     private GroguLoadedListener groguLoadedListener;
     private GroguDamageListener groguDamageListener;
     private GroguFeedingListener groguFeedingListener;
+    private GroguSoundListener groguSoundListener;
     private GroguNamingListener groguNamingListener;
 
     private UUID groguUuid;
@@ -70,6 +74,9 @@ public class GroguManager {
         
         groguFeedingListener = new GroguFeedingListener(plugin, playerManager, metalBeadItem, groguEntity);
         pluginManager.registerEvents(groguFeedingListener, plugin);
+        
+        groguSoundListener = new GroguSoundListener(groguEntity);
+        pluginManager.registerEvents(groguSoundListener, plugin);
         
         groguNamingListener = new GroguNamingListener(groguEntity);
         pluginManager.registerEvents(groguNamingListener, plugin);
@@ -154,9 +161,21 @@ public class GroguManager {
         grogu.customName(Component.text("Grogu"));
         grogu.setCustomNameVisible(false);
         grogu.setPersistent(true);
-        grogu.setRemoveWhenFarAway(false);
+        grogu.setCanPickupItems(false);
+        grogu.setCanDuplicate(false);
+        grogu.setPersistenceRequired(true);
         grogu.getPersistentDataContainer().set(plugin.getKeys().groguJailLocationKey, PersistentDataType.INTEGER_ARRAY,
             new int[] { location.getBlockX(), location.getBlockY(), location.getBlockZ() });
+
+        AttributeInstance flyingSpeed = grogu.getAttribute(Attribute.FLYING_SPEED);
+        if (flyingSpeed != null) {
+            flyingSpeed.setBaseValue(Settings.GROGU_MOVEMENT_SPEED);
+        }
+
+        AttributeInstance movementSpeed = grogu.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (movementSpeed != null) {
+            movementSpeed.setBaseValue(Settings.GROGU_MOVEMENT_SPEED);
+        }
 
         groguEntity.markAsGrogu(grogu);
         saveGroguUuid(grogu.getUniqueId());
@@ -223,6 +242,7 @@ public class GroguManager {
         HandlerList.unregisterAll(groguLoadedListener);
         HandlerList.unregisterAll(groguDamageListener);
         HandlerList.unregisterAll(groguFeedingListener);
+        HandlerList.unregisterAll(groguSoundListener);
         HandlerList.unregisterAll(groguNamingListener);
 
         plugin.getLogger().info("Grogu manager disabled");

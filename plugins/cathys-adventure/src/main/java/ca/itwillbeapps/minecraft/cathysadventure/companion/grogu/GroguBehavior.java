@@ -4,6 +4,7 @@ package ca.itwillbeapps.minecraft.cathysadventure.companion.grogu;
 import org.bukkit.Location;
 import org.bukkit.entity.Allay;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.memory.MemoryKey;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -38,7 +39,7 @@ public class GroguBehavior {
             return;
         }
 
-        groguBehaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1l, 10l);
+        groguBehaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1l, 1l);
 
         roamingTicks = 0;
         destination = null;
@@ -53,6 +54,15 @@ public class GroguBehavior {
         Allay allay = groguManager.getGrogu();
 
         if (allay != null && !allay.isDead() && allay.isValid()) {
+            if (allay.getMemory(MemoryKey.LIKED_NOTEBLOCK_POSITION) != null) {
+                allay.setMemory(MemoryKey.LIKED_NOTEBLOCK_POSITION, null);
+                allay.setMemory(MemoryKey.LIKED_NOTEBLOCK_COOLDOWN_TICKS, 0);
+            }
+
+            if (allay.isDancing()) {
+                allay.stopDancing();
+            }
+
             if (!allay.getPersistentDataContainer().getOrDefault(plugin.getKeys().tamedKey, PersistentDataType.BOOLEAN, false)) {
                 untamedGroguTick(allay);
                 return;
@@ -119,7 +129,7 @@ public class GroguBehavior {
         double squaredDistanceFromCathy = grogu.getLocation().distanceSquared(cathy.getLocation());
 
         if (squaredDistanceFromCathy > Settings.GROGU_TELEPORT_THRESHOLD * Settings.GROGU_TELEPORT_THRESHOLD) {
-            companionMovement.teleportNearPlayer(grogu, cathy, Settings.GROGU_SUMMON_DISTANCE, false);
+            companionMovement.teleportNearPlayer(grogu, cathy, Settings.GROGU_SUMMON_DISTANCE, true);
         } else if (squaredDistanceFromCathy > Settings.GROGU_SUMMON_DISTANCE * Settings.GROGU_SUMMON_DISTANCE) {
             companionMovement.moveDistanceFromPlayer(grogu, cathy, Settings.GROGU_SUMMON_DISTANCE, Settings.GROGU_SUMMON_DISTANCE);
         }
